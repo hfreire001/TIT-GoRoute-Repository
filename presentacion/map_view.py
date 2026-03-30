@@ -25,6 +25,13 @@ def generar_color_hex(indice): #Genera un color aleatorio por cada pin del mapa 
     return f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}" #Devuelve en hexadecimal el color RGB
 
 def render():
+    # ==========================================
+    # MODO PRUEBA: FORZAR USUARIO LOGUEADO
+    # ==========================================
+    if 'usuario_logueado' not in st.session_state or st.session_state['usuario_logueado'] is None:
+        st.session_state['usuario_logueado'] = {'id': 1, 'nombre': 'PilotoDePruebas'}
+        st.toast("🔧 Modo Dev: Usuario ID 1 forzado para probar BBDD")
+
     st.title("Creador de Rutas")
     st.write("Añade paradas, organízalas a tu gusto y pulsa 'Calcular' cuando lo tengas claro.")
 
@@ -189,11 +196,23 @@ def render():
             st.subheader("Publicar Ruta")
             nombre_ruta = st.text_input("Ponle un nombre a tu ruta:")
             
+            # AÑADIDO: Campo de descripción para que coincida con tu BBDD
+            desc_ruta = st.text_area("Descripción (Opcional):")
+            
             if st.button("Guardar en mi perfil", type="primary"):
-                if st.session_state.get('usuario_logueado'):
+                # AÑADIDO: Validación para evitar que se guarde sin nombre (en BBDD es NOT NULL)
+                if not nombre_ruta:
+                    st.warning("⚠️ Debes ponerle un nombre a la ruta.")
+                elif st.session_state.get('usuario_logueado'):
                     user_id = st.session_state['usuario_logueado']['id']
-                    exito_guardar = route_repo.guardar_ruta(user_id, nombre_ruta, st.session_state['ruta_calculada']['geometria'])
-                    if exito_guardar: st.success("✅ ¡Ruta guardada en PostGIS correctamente!")
-                    else: st.error("Hubo un error al guardar.")
+                    
+                    # AÑADIDO: Pasamos desc_ruta a tu repositorio
+                    exito_guardar = route_repo.guardar_ruta(user_id, nombre_ruta, desc_ruta, st.session_state['ruta_calculada']['geometria'])
+                    
+                    if exito_guardar: 
+                        st.success("✅ ¡Ruta guardada en PostGIS correctamente!")
+                        st.balloons()
+                    else: 
+                        st.error("Hubo un error al guardar.")
                 else:
                     st.warning("⚠️ Debes iniciar sesión para poder guardar rutas.")
