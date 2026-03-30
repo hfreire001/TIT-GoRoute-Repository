@@ -188,31 +188,39 @@ def render():
 
     
     # RESULTADOS Y GUARDADO
-        if st.session_state['ruta_calculada']:
-            st.success(f"**🚶 Distancia:** {st.session_state['ruta_calculada']['distancia_km']:.1f} km")
-            st.success(f"**⏱️ Tiempo:** {formatear_tiempo(st.session_state['ruta_calculada']['duracion_min'])} andando.")
-            
-            st.write("---")
-            st.subheader("Publicar Ruta")
-            nombre_ruta = st.text_input("Ponle un nombre a tu ruta:")
-            
-            # AÑADIDO: Campo de descripción para que coincida con tu BBDD
-            desc_ruta = st.text_area("Descripción (Opcional):")
-            
-            if st.button("Guardar en mi perfil", type="primary"):
-                # AÑADIDO: Validación para evitar que se guarde sin nombre (en BBDD es NOT NULL)
-                if not nombre_ruta:
-                    st.warning("⚠️ Debes ponerle un nombre a la ruta.")
-                elif st.session_state.get('usuario_logueado'):
-                    user_id = st.session_state['usuario_logueado']['id']
-                    
-                    # AÑADIDO: Pasamos desc_ruta a tu repositorio
-                    exito_guardar = route_repo.guardar_ruta(user_id, nombre_ruta, desc_ruta, st.session_state['ruta_calculada']['geometria'])
-                    
-                    if exito_guardar: 
-                        st.success("✅ ¡Ruta guardada en PostGIS correctamente!")
-                        st.balloons()
-                    else: 
-                        st.error("Hubo un error al guardar.")
-                else:
-                    st.warning("⚠️ Debes iniciar sesión para poder guardar rutas.")
+    if st.session_state['ruta_calculada']:
+        st.success(f"**🚶 Distancia:** {st.session_state['ruta_calculada']['distancia_km']:.1f} km")
+        st.success(f"**⏱️ Tiempo:** {formatear_tiempo(st.session_state['ruta_calculada']['duracion_min'])} andando.")
+        
+        st.write("---")
+        st.subheader("Publicar Ruta")
+        nombre_ruta = st.text_input("Ponle un nombre a tu ruta:")
+        desc_ruta = st.text_area("Descripción (Opcional):")
+        
+        # NUEVO: Componente para subir la imagen
+        imagen_ruta = st.file_uploader("Añadir foto de portada (Opcional)", type=["jpg", "jpeg", "png"])
+        
+        if st.button("Guardar en mi perfil", type="primary"):
+            if not nombre_ruta:
+                st.warning("⚠️ Debes ponerle un nombre a la ruta.")
+            elif st.session_state.get('usuario_logueado'):
+                user_id = st.session_state['usuario_logueado']['id']
+                username = st.session_state['usuario_logueado']['nombre'] # Necesitamos el nombre para el hash
+                
+                # 🚀 Pasamos el username y el archivo al repositorio
+                exito_guardar = route_repo.guardar_ruta(
+                    user_id, 
+                    username, 
+                    nombre_ruta, 
+                    desc_ruta, 
+                    st.session_state['ruta_calculada']['geometria'],
+                    imagen_ruta
+                )
+                
+                if exito_guardar: 
+                    st.success("✅ ¡Ruta e imagen guardadas correctamente!")
+                    st.balloons()
+                else: 
+                    st.error("Hubo un error al guardar.")
+            else:
+                st.warning("⚠️ Debes iniciar sesión para poder guardar rutas.")
