@@ -1,6 +1,6 @@
 import requests
 
-# ⚠️ Pon aquí tu API KEY real de OpenRouteService
+#API KEY real de OpenRouteService
 ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImRhZGI4N2E1YWY0MjRhODQ4NjFkNjFkZmZjMWM2YmM2IiwiaCI6Im11cm11cjY0In0=" 
 
 def calcular_ruta_puntos(coordenadas):
