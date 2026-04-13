@@ -25,9 +25,9 @@ def get_social_counts(user_id):
     try:
         # follower_id: el que sigue | followed_id: el que es seguido
         cursor.execute("SELECT COUNT(*) FROM follows WHERE followed_id = %s", (user_id,))
-        seguidores = cursor.fetchone()[0]
+        seguidores = cursor.fetchone()[0] # type: ignore
         cursor.execute("SELECT COUNT(*) FROM follows WHERE follower_id = %s", (user_id,))
-        seguidos = cursor.fetchone()[0]
+        seguidos = cursor.fetchone()[0] # type: ignore
         return seguidores, seguidos
     finally:
         if cursor:
@@ -35,16 +35,42 @@ def get_social_counts(user_id):
             cursor.close()
             close(conn)
 
+# datos/user_repo.py
+from datos.db_connection import connect, close
+
 def get_user_routes(user_id):
-    """Obtiene rutas de la tabla 'routes'."""
     cursor = connect()
-    if not cursor:
-        return []
+    if not cursor: return []
     try:
-        # Ajustado a tus columnas: id, name, thumbnail_url
-        query = "SELECT id, name, thumbnail_url FROM routes WHERE creator_id = %s"
+        # Ordenamos por fecha de creación para que la primera sea imagen1, la segunda imagen2...
+        query = """
+            SELECT id, name, created_at 
+            FROM routes 
+            WHERE creator_id = %s 
+            ORDER BY created_at ASC
+        """
         cursor.execute(query, (user_id,))
-        return cursor.fetchall()
+        return cursor.fetchall() 
+    finally:
+        if cursor:
+            conn = cursor.connection
+            cursor.close()
+            close(conn)
+            
+# datos/user_repo.py
+
+def delete_route_db(route_id, user_id):
+    """Elimina la ruta de la DB verificando que el creador sea el usuario logueado."""
+    cursor = connect()
+    if not cursor: return False
+    try:
+        query = "DELETE FROM routes WHERE id = %s AND creator_id = %s"
+        cursor.execute(query, (route_id, user_id))
+        cursor.connection.commit() # Confirmamos el borrado
+        return True
+    except Exception as e:
+        print(f"Error al borrar ruta en DB: {e}")
+        return False
     finally:
         if cursor:
             conn = cursor.connection
