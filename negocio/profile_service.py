@@ -1,12 +1,58 @@
 import os
+import glob
 from datos import user_repo
 
 
-def delete_route(route_id, user_id):
-    # Aquí podrías añadir lógica para borrar el archivo físico si quisieras
-    return user_repo.delete_route_db(route_id, user_id)
+# negocio/profile_service.py
+import os
+import glob
+from datos import user_repo
 
-# (El resto de la función get_full_profile se mantiene igual)
+def delete_route(route_id, user_id):
+    """Elimina una ruta y reordena los archivos físicos para no dejar huecos."""
+    
+    # 1. Obtener la lista de rutas ANTES de borrar para saber la posición
+    routes_raw = user_repo.get_user_routes(user_id)
+    
+    indice_borrar = -1
+    for index, r in enumerate(routes_raw):
+        if r[0] == route_id:
+            indice_borrar = index + 1 # Posición natural (1, 2, 3...)
+            break
+
+    if indice_borrar == -1:
+        return False
+
+    # 2. Borrar de la Base de Datos
+    db_success = user_repo.delete_route_db(route_id, user_id)
+    
+    if db_success:
+        # 3. Borrar el archivo físico correspondiente
+        # Buscamos imagenN.* (cualquier extensión)
+        patron_borrar = f"imagenes/{user_id}/rutas/imagen{indice_borrar}.*"
+        for f in glob.glob(patron_borrar):
+            os.remove(f)
+
+        # 4. RENOMBRAR LOS POSTERIORES (Shift hacia atrás)
+        # Ejemplo: Si borramos imagen1, la imagen2 pasa a ser imagen1, la 3 a 2...
+        total_rutas_originales = len(routes_raw)
+        
+        for i in range(indice_borrar + 1, total_rutas_originales + 1):
+            # Buscamos el archivo de la siguiente posición (i)
+            patron_siguiente = f"imagenes/{user_id}/rutas/imagen{i}.*"
+            for f_antiguo in glob.glob(patron_siguiente):
+                # Extraemos la extensión original (.jpg, .png...)
+                extension = os.path.splitext(f_antiguo)[1]
+                # Nuevo nombre: una posición menos
+                nuevo_nombre = f"imagenes/{user_id}/rutas/imagen{i-1}{extension}"
+                
+                try:
+                    os.rename(f_antiguo, nuevo_nombre)
+                    print(f"Renombrado: {f_antiguo} -> {nuevo_nombre}")
+                except Exception as e:
+                    print(f"Error renombrando {f_antiguo}: {e}")
+
+    return db_success
 
 
 def get_full_profile(user_id):
