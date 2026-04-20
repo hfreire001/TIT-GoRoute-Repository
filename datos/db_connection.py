@@ -36,5 +36,3 @@ def close(connection):
     if connection:
         connection.close()
         print("Conexión cerrada y recursos liberados.")
-    
-
