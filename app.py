@@ -1,11 +1,27 @@
-# app.py
 import streamlit as st
-from presentacion import profile_view
+# Importamos la vista que hemos creado con el formulario y el límite de 5
+from presentacion import search_view 
 
-st.set_page_config(page_title="Plan & Go", layout="wide")
+# 1. Configuración de la página (DEBE SER LO PRIMERO)
+st.set_page_config(page_title="PLAN & GO - Explorar", layout="wide")
 
-# Forzamos el ID 3 para la prueba real con tu tabla 'users'
-if "user_id" not in st.session_state:
-    st.session_state.user_id = 1
+def main():
+    # Estilos globales si quisieras (opcional)
+    st.sidebar.title("PLAN & GO 👁️🫦👁️")
+    
+    # Navegación sencilla (Puedes añadir más vistas aquí luego)
+    menu = ["Explorar 🔍", "Perfil", "Mapa"]
+    choice = st.sidebar.selectbox("Navegación", menu)
 
-profile_view.render_profile(st.session_state.user_id)
+    if choice == "Explorar 🔍":
+        # Llamamos a la función render_search() que está en tu carpeta vistas
+        search_view.render_search()
+    
+    elif choice == "Perfil":
+        st.write("Aquí iría tu profile_view.render_profile()")
+    
+    elif choice == "Mapa":
+        st.write("Aquí iría tu map_view.render_map()")
+
+if __name__ == "__main__":
+    main()
