@@ -1,9 +1,6 @@
 # datos/chat_repo.py
 
 def obtener_lista_chats(user_id, cursor):
-    """
-    Devuelve la lista de chats ordenados por el mensaje más reciente (enviado o recibido).
-    """
     query = """
     SELECT u.id, u.username, u.avatar_url, m.content, m.created_at
     FROM users u
@@ -18,14 +15,10 @@ def obtener_lista_chats(user_id, cursor):
     WHERE m.rn = 1
     ORDER BY m.created_at DESC;
     """
-    # Pasamos el user_id 4 veces para cubrir las comparaciones de emisor y receptor
     cursor.execute(query, (user_id, user_id, user_id, user_id))
     return cursor.fetchall()
 
 def buscar_usuarios_para_chat(user_id, search_text, cursor):
-    """
-    Busca usuarios priorizando aquellos a los que el usuario principal ya sigue.
-    """
     query = """
     SELECT u.id, u.username, u.avatar_url, 
            CASE WHEN f.followed_id IS NOT NULL THEN 1 ELSE 0 END as is_followed
@@ -35,14 +28,10 @@ def buscar_usuarios_para_chat(user_id, search_text, cursor):
     ORDER BY is_followed DESC, u.username ASC
     LIMIT 20;
     """
-    # ILIKE ignora mayúsculas/minúsculas en PostgreSQL
     cursor.execute(query, (user_id, f"%{search_text}%", user_id))
     return cursor.fetchall()
 
 def obtener_mensajes_paginados(user_id_1, user_id_2, limit, offset, cursor):
-    """
-    Obtiene los mensajes entre dos usuarios con un límite (50) para carga progresiva.
-    """
     query = """
     SELECT sender_id, receiver_id, content, created_at
     FROM messages
