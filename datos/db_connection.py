@@ -9,7 +9,7 @@ def connect():
     try:
         # 1. Configuración de la conexión
         conexion = psycopg2.connect(
-            host="10.26.68.50",
+            host="10.199.150.50",
             port="5432",
             database="Usuario",  # Asegúrate de que no sea 'usuario' en minúscula
             user="postgres",
