@@ -37,7 +37,9 @@ def get_full_profile(user_id):
 
     # 1. Avatar (Lógica original)
     foto_perfil = "https://www.w3schools.com/howto/img_avatar.png"
-    base_avatar = f"imagenes/{user_id}/avatar/imagen1"
+    # SOLUCIÓN: Añadimos la 'r' minúscula justo antes de la 'f' para evitar el error de unicode
+    base_avatar = rf"C:\Users\garaz\OneDrive\Escritorio\UNIVERSIDAD\Cuarto\TAP\Plan&Go\imagenes\{user_id}\avatar\imagen1"
+    
     for ext in ['jpg', 'png', 'jpeg', 'webp']:
         if os.path.exists(f"{base_avatar}.{ext}"):
             foto_perfil = f"{base_avatar}.{ext}"
@@ -57,7 +59,9 @@ def get_full_profile(user_id):
         # Lógica para encontrar la imagen física correspondiente
         n_imagen = index + 1
         ruta_img = "https://via.placeholder.com/300x200?text=Sin+Imagen"
-        base_ruta = f"imagenes/{user_id}/rutas/imagen{n_imagen}"
+        
+        # SOLUCIÓN: Añadimos la 'r' minúscula justo antes de la 'f'
+        base_ruta = rf"C:\Users\garaz\OneDrive\Escritorio\UNIVERSIDAD\Cuarto\TAP\Plan&Go\imagenes\{user_id}\rutas\imagen{n_imagen}"
         
         for ext in ['jpg', 'png', 'jpeg', 'webp']:
             if os.path.exists(f"{base_ruta}.{ext}"):
