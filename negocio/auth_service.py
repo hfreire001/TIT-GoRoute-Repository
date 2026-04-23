@@ -34,14 +34,10 @@ def verificar_login(username, password_plana):
 
 def registrar_usuario(username, email, password_plana):
     """
-    Encripta la contraseña y pide a la capa de datos que guarde el usuario.
+    Guarda el usuario en la base de datos (SIN HASHEAR LA CONTRASEÑA).
     """
-    # 1. Encriptamos la contraseña con bcrypt
-    sal = bcrypt.gensalt()
-    hash_pass = bcrypt.hashpw(password_plana.encode('utf-8'), sal).decode('utf-8')
-    
-    # 2. Se lo pasamos a la base de datos
-    exito = user_repo.crear_usuario(username, email, hash_pass)
+    # Pasamos la contraseña directamente sin usar bcrypt
+    exito = user_repo.crear_usuario(username, email, password_plana)
     
     if exito:
         return True, "✅ ¡Usuario registrado con éxito! Ya puedes iniciar sesión."

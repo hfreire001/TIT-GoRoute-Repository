@@ -4,7 +4,6 @@ import base64
 import os
 
 def get_image_base64(path):
-    """ Tu función original intacta """
     if path and os.path.exists(path):
         try:
             with open(path, "rb") as f:
@@ -108,7 +107,16 @@ def render_profile(user_id):
                 c1, c2 = st.columns([3, 1])
                 with c1:
                     if st.button("Explorar", key=f"v_{ruta['id']}", use_container_width=True):
-                        st.session_state.current_route = ruta['id']
+                        # 1. Cargamos los datos de la ruta para el mapa
+                        st.session_state['ruta_activa_id'] = ruta['id']
+                        st.session_state['modo_mapa'] = 'ver'
+                        
+                        # 2. ¡EL SALTO MÁGICO! 
+                        # Cambiamos la página actual a la del mapa
+                        st.session_state['pagina_actual'] = "📍 Crear ruta"
+                        
+                        # 3. Forzamos la recarga inmediata
+                        st.rerun()
                 with c2:
                     if st.button("🗑️", key=f"d_{ruta['id']}", use_container_width=True):
                         if profile_service.delete_route(ruta['id'], user_id):

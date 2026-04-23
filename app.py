@@ -1,26 +1,43 @@
 import streamlit as st
 
-# Importamos las 4 vistas (asegúrate de que los nombres de archivo sean correctos)
-from presentacion import login_view, home_view, profile_view, map_view
+# 🚀 NUEVO: Importamos register_view junto con las demás
+from presentacion import login_view, home_view, profile_view, map_view, register_view
 
 st.set_page_config(page_title="Plan&Go", layout="wide", page_icon="📍")
 
 def main():
+    opciones_menu = ["🏠 Feed", "📍 Crear ruta", "👤 Perfil"]
+
     # 1. Inicialización de sesión
     if 'usuario_logueado' not in st.session_state:
         st.session_state['usuario_logueado'] = None
         
-    # 2. Variables del Mapa (para que no de error al cargar la vista del mapa)
+    if 'pagina_actual' not in st.session_state:
+        st.session_state['pagina_actual'] = "🏠 Feed"
+        
+    # 🚀 NUEVO: Control de la pantalla inicial (Login vs Registro)
+    if 'pantalla_actual' not in st.session_state:
+        st.session_state['pantalla_actual'] = "Login"
+        
+    # 2. Variables del Mapa
     if 'ruta_activa_id' not in st.session_state:
         st.session_state['ruta_activa_id'] = None
     if 'modo_mapa' not in st.session_state:
         st.session_state['modo_mapa'] = 'crear'
 
-    # 3. Lógica de Navegación
+    # 3. Lógica de Navegación Inicial
     if st.session_state['usuario_logueado'] is None:
-        # Si no hay nadie, al Login
-        login_view.render() 
+        # 🚀 NUEVO: Aquí decidimos si mostrar Login o Registro
+        if st.session_state['pantalla_actual'] == "Login":
+            login_view.render() 
+        elif st.session_state['pantalla_actual'] == "Registrarse":
+            register_view.render()
     else:
+        try:
+            indice_actual = opciones_menu.index(st.session_state['pagina_actual'])
+        except ValueError:
+            indice_actual = 0
+
         # Menú Lateral para el usuario logueado
         with st.sidebar:
             usuario = st.session_state['usuario_logueado']
@@ -28,21 +45,22 @@ def main():
             st.write(f"Hola, **{nombre}**")
             st.divider()
             
-            # Selector de página con el nuevo nombre "Crear ruta"
-            opcion = st.radio("Ir a:", ["🏠 Feed", "📍 Crear ruta", "👤 Perfil"])
+            opcion = st.radio("Ir a:", opciones_menu, index=indice_actual)
+            st.session_state['pagina_actual'] = opcion
             
             st.divider()
             if st.button("Cerrar Sesión"):
                 st.session_state['usuario_logueado'] = None
+                st.session_state['pagina_actual'] = "🏠 Feed" 
+                st.session_state['pantalla_actual'] = "Login" # 🚀 NUEVO: Reseteamos al login al salir
                 st.rerun()
                 
-        # Renderizado de la vista seleccionada
-        if opcion == "🏠 Feed":
+        # 4. Renderizado de la vista seleccionada
+        if st.session_state['pagina_actual'] == "🏠 Feed":
             home_view.render()
-        elif opcion == "📍 Crear ruta":
-            # Aquí llamamos a la vista del mapa
+        elif st.session_state['pagina_actual'] == "📍 Crear ruta":
             map_view.render()
-        elif opcion == "👤 Perfil":
+        elif st.session_state['pagina_actual'] == "👤 Perfil":
             id_actual = st.session_state['usuario_logueado']['id']
             profile_view.render_profile(id_actual)
 

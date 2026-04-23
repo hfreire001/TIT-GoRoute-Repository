@@ -9,7 +9,6 @@ import json
 import os
 
 def cargar_tags():
-    """Lee el archivo tags.json y devuelve la lista de etiquetas."""
     ruta_json = 'tags.json'
     if os.path.exists(ruta_json):
         with open(ruta_json, 'r', encoding='utf-8') as f:
@@ -28,47 +27,112 @@ def formatear_tiempo(total_minutos):
     texto = []
     if dias > 0: texto.append(f"{dias} d")
     if horas > 0: texto.append(f"{horas} h")
-    if minutos > 0 or (dias == 0 and horas == 0): texto.append(f"{minutos} min") #Asegura que pone 0min en caso de ser el mismo sitio
+    if minutos > 0 or (dias == 0 and horas == 0): texto.append(f"{minutos} min")
         
     return " ".join(texto)
 
-def generar_color_hex(indice): #Genera un color aleatorio por cada pin del mapa (Principio siempre verde, final siempre rojo)
-    hue = (indice * 77) % 360 #El número depende del indice de la ruta (La parada)
-    r, g, b = colorsys.hls_to_rgb(hue / 360.0, 0.5, 0.9) #Los valores de luminosidad (0.5) y brillo fijos (0.9)
-    return f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}" #Devuelve en hexadecimal el color RGB
+def generar_color_hex(indice):
+    hue = (indice * 77) % 360 
+    r, g, b = colorsys.hls_to_rgb(hue / 360.0, 0.5, 0.9) 
+    return f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
 
+# 🚀 NUEVO CONTROLADOR DE VISTAS
 def render():
+    if st.session_state.get('modo_mapa') == 'ver' and st.session_state.get('ruta_activa_id'):
+        # Aquí ya tienes tu función cargar_modo_lectura que muestra la ruta
+        cargar_modo_lectura(st.session_state['ruta_activa_id'])
+    else:
+        # Título dinámico para el creador
+        st.title("📍 Diseña tu nueva ruta")
+
+# 🚀 LA NUEVA VISTA PARA EXPLORAR RUTAS
+def cargar_modo_lectura(route_id):
+    datos_ruta = route_repo.get_route_by_id(route_id)
+    if not datos_ruta:
+        st.error("No se pudo cargar la ruta de la base de datos.")
+        return
+
+    # 🚀 AHORA DESEMPAQUETAMOS 5 DATOS (Añadimos distancia_m)
+    nombre, desc, geom_json, tags, distancia_m = datos_ruta
+    geom = json.loads(geom_json) 
+    
+    # Pasamos los metros a kilómetros y redondeamos
+    distancia_km = (distancia_m / 1000) if distancia_m else 0
+    
+    st.title(f"📍 Explorando: {nombre}")
+    
+    # Botón para volver al perfil
+    if st.button("⬅️ Volver al Perfil"):
+        # Reseteamos el mapa por si luego quiere crear una ruta
+        st.session_state['modo_mapa'] = 'crear' 
+        st.session_state['ruta_activa_id'] = None
+        
+        # ¡EL SALTO MÁGICO DE VUELTA!
+        st.session_state['pagina_actual'] = "👤 Perfil" 
+        st.rerun()
+
+    col_mapa, col_info = st.columns([2.5, 1.5])
+
+    with col_mapa:
+        primer_punto = geom['coordinates'][0]
+        m = folium.Map(location=[primer_punto[1], primer_punto[0]], zoom_start=14)
+        
+        coords_folium = [[p[1], p[0]] for p in geom['coordinates']]
+        folium.PolyLine(coords_folium, color="#0078D7", weight=5).add_to(m)
+        
+        folium.Marker(coords_folium[0], tooltip="Inicio", icon=folium.Icon(color='green')).add_to(m)
+        folium.Marker(coords_folium[-1], tooltip="Fin", icon=folium.Icon(color='red')).add_to(m)
+        
+        st_folium(m, width=800, height=600)
+
+    with col_info:
+        st.subheader("Detalles de la ruta")
+        
+        # 🚀 AÑADIMOS LA DISTANCIA DESTACADA AQUÍ
+        st.success(f"**🚶 Distancia total:** {distancia_km:.1f} km")
+        
+        st.write(f"**Descripción:** {desc if desc else 'El autor no ha añadido descripción.'}")
+        
+        st.write("**Etiquetas:**")
+        if tags:
+            etiquetas_html = "".join([f'<span style="background-color:#e1e4e8; color:#0366d6; padding:4px 10px; border-radius:12px; margin-right:5px; margin-bottom:5px; font-size:13px; display:inline-block;">{t}</span>' for t in tags])
+            st.markdown(etiquetas_html, unsafe_allow_html=True)
+        else:
+            st.write("Sin etiquetas")
+        
+        st.divider()
+        st.info("💡 Esta ruta ha sido trazada y guardada para realizarse a pie.")
+
+# TU CREADOR ORIGINAL (Renombrado a render_creador_normal)
+def render_creador_normal():
     st.title("📍 Creador de Rutas")
     st.write("Añade paradas, organízalas a tu gusto y pulsa 'Calcular' cuando lo tengas claro.")
 
-    #Inicializar la sesión
     if 'puntos_ruta' not in st.session_state:
-        st.session_state['puntos_ruta'] = [] #Para mantener los puntos seleccionados en la ruta, si no hay ninguno se crea una sesión
+        st.session_state['puntos_ruta'] = []
     if 'ruta_calculada' not in st.session_state:
-        st.session_state['ruta_calculada'] = None #No hay ninguna estadística hecha
+        st.session_state['ruta_calculada'] = None
     if 'contador_ubicaciones' not in st.session_state:
-        st.session_state['contador_ubicaciones'] = 0 #No hay ninguna parada asignada todavía
+        st.session_state['contador_ubicaciones'] = 0
 
-    col_mapa, col_panel = st.columns([2.5, 1.5]) #Asignar tamaño del mapa en la pantalla
+    col_mapa, col_panel = st.columns([2.5, 1.5]) 
 
-    #ZONA IZQUIERDA: EL MAPA
     with col_mapa:
-        if st.session_state['puntos_ruta']: #Si hay puntos asignados, hace zoom al último punto (puntos_ruta - 1)
+        if st.session_state['puntos_ruta']:
             ultimo_punto = st.session_state['puntos_ruta'][-1]
             centro_mapa = [ultimo_punto['lat'], ultimo_punto['lng']]
             zoom_inicial = 14
-        else: #Si no hay parada, hace zoom a Bilbao entero
-            centro_mapa = [43.2630, -2.9350] # Bilbao
+        else:
+            centro_mapa = [43.2630, -2.9350]
             zoom_inicial = 12
 
-        m = folium.Map(location=centro_mapa, zoom_start=zoom_inicial) #Parámetros: Coordenadas y zoom
+        m = folium.Map(location=centro_mapa, zoom_start=zoom_inicial)
 
         for i, punto in enumerate(st.session_state['puntos_ruta']):
             if i == 0: color_hex = "#28a745"
             elif i == len(st.session_state['puntos_ruta']) - 1: color_hex = "#dc3545"
             else: color_hex = generar_color_hex(i)
                 
-            #Popup del mapa que muestra el nombre real de la calle
             nombre_lugar = punto.get('nombre', f"Ubicación {punto.get('id', '?')}")
                 
             folium.CircleMarker(
@@ -82,51 +146,43 @@ def render():
                 popup=nombre_lugar
             ).add_to(m)
 
-        if st.session_state['ruta_calculada']: #Para calcular la ruta (marcada en azul)
+        if st.session_state['ruta_calculada']:
             ruta_data = st.session_state['ruta_calculada']
-            coords_ors = ruta_data['geometria']['coordinates'] #Obtener la linea de ruta del GEOJSON
+            coords_ors = ruta_data['geometria']['coordinates']
             coords_folium = [[p[1], p[0]] for p in coords_ors] 
             folium.PolyLine(coords_folium, color="#0078D7", weight=5, opacity=0.8).add_to(m)
 
         mapa_interactivo = st_folium(m, width=800, height=600, returned_objects=["last_clicked"])
 
-        # Guardar paradas 
         if mapa_interactivo and mapa_interactivo.get("last_clicked"):
             clic_actual = mapa_interactivo["last_clicked"]
             
             if not st.session_state['puntos_ruta'] or (st.session_state['puntos_ruta'][-1]['lat'] != clic_actual['lat']):
-                st.session_state['contador_ubicaciones'] += 1 #Sumamos una ruta, incrementar índice
-                clic_actual['id'] = st.session_state['contador_ubicaciones'] #Poner el índice incrementado
+                st.session_state['contador_ubicaciones'] += 1
+                clic_actual['id'] = st.session_state['contador_ubicaciones'] 
                 
-                #BUSCAR EL NOMBRE DEL SITIO ANTES DE GUARDARLO
                 with st.spinner("Buscando nombre del lugar..."):
                     nombre = map_service.obtener_nombre_lugar(clic_actual['lat'], clic_actual['lng'])
                     clic_actual['nombre'] = nombre
                 
-                st.session_state['puntos_ruta'].append(clic_actual) #Añadir el nuevo punto
-                st.session_state['ruta_calculada'] = None #Se borra la ruta que se ha calculado
+                st.session_state['puntos_ruta'].append(clic_actual)
+                st.session_state['ruta_calculada'] = None
                 st.rerun()
 
-
-    # ZONA DERECHA: PANEL DE CONTROL
     with col_panel:
         st.subheader("Paradas:")
         
-        if not st.session_state['puntos_ruta']: #Si no hay paradas
+        if not st.session_state['puntos_ruta']:
             st.info("Haz clic en el mapa para empezar.")
         else:
             st.caption("Mantén pulsado y arrastra para cambiar el orden:")
             
             estilo_css = """
             .sortable-item {
-                color: white !important;
-                border-radius: 8px !important;
-                padding: 10px 15px !important;
-                margin-bottom: 8px !important;
-                font-weight: bold !important;
-                font-family: sans-serif !important;
-                border: none !important;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+                color: white !important; border-radius: 8px !important;
+                padding: 10px 15px !important; margin-bottom: 8px !important;
+                font-weight: bold !important; font-family: sans-serif !important;
+                border: none !important; box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
                 cursor: grab !important;
             }
             .sortable-item:active { cursor: grabbing !important; }
@@ -135,14 +191,13 @@ def render():
             nombres_puntos = []
             diccionario_puntos = {}
             
-            for i, p in enumerate(st.session_state['puntos_ruta']): #El mismo color de los pines del mapa
+            for i, p in enumerate(st.session_state['puntos_ruta']):
                 if i == 0: bg_color = "#28a745"
                 elif i == len(st.session_state['puntos_ruta']) - 1: bg_color = "#dc3545"
                 else: bg_color = generar_color_hex(i)
                 
                 estilo_css += f".sortable-item:nth-child({i+1}) {{ background-color: {bg_color} !important; }}\n"
                 
-                # LA ETIQUETA MUESTRA EL NOMBRE DE LA CALLE (y su ID por si hay calles repetidas)
                 nombre_real = p.get('nombre', f"Ubicación {p['id']}")
                 nombre_etiqueta = f"{nombre_real} (Id:{p['id']})"
                 
@@ -151,10 +206,10 @@ def render():
 
             puntos_reordenados = sort_items(nombres_puntos, custom_style=estilo_css)
 
-            if puntos_reordenados and puntos_reordenados != nombres_puntos: #Si se ha cambiado el orden de las puntos
-                st.session_state['puntos_ruta'] = [diccionario_puntos[nombre] for nombre in puntos_reordenados] #Reordena las rutas
+            if puntos_reordenados and puntos_reordenados != nombres_puntos:
+                st.session_state['puntos_ruta'] = [diccionario_puntos[nombre] for nombre in puntos_reordenados]
                 
-                if len(st.session_state['puntos_ruta']) >= 2: #Si hay más de dos puntos hace la ruta
+                if len(st.session_state['puntos_ruta']) >= 2:
                     coordenadas_api = [[pt['lng'], pt['lat']] for pt in st.session_state['puntos_ruta']]
                     exito, resultado = map_service.calcular_ruta_puntos(coordenadas_api)
                     if exito: st.session_state['ruta_calculada'] = resultado
@@ -192,8 +247,6 @@ def render():
             st.session_state['contador_ubicaciones'] = 0
             st.rerun()
 
-    
-    # RESULTADOS Y GUARDADO
     if st.session_state['ruta_calculada']:
         st.success(f"**🚶 Distancia:** {st.session_state['ruta_calculada']['distancia_km']:.1f} km")
         st.success(f"**⏱️ Tiempo:** {formatear_tiempo(st.session_state['ruta_calculada']['duracion_min'])} andando.")
@@ -202,41 +255,28 @@ def render():
         st.subheader("Publicar Ruta")
         nombre_ruta = st.text_input("Ponle un nombre a tu ruta:")
         
-        # --- CARGA Y SELECCIÓN DE ETIQUETAS ---
         opciones_tags = cargar_tags()
-        tags_seleccionados = st.multiselect(
-            "Selecciona etiquetas para tu ruta:",
-            options=opciones_tags,
-            help="Puedes elegir varias categorías para clasificar tu ruta."
-        )
+        tags_seleccionados = st.multiselect("Selecciona etiquetas para tu ruta:", options=opciones_tags)
         
         desc_ruta = st.text_area("Descripción (Opcional):")
         imagen_ruta = st.file_uploader("Añadir foto de portada (Opcional)", type=["jpg", "jpeg", "png"])
         
         if st.button("Guardar en mi perfil", type="primary"):
-            if not nombre_ruta:
-                st.warning("⚠️ Debes ponerle un nombre a la ruta.")
-            elif not tags_seleccionados:
-                st.warning("⚠️ Selecciona al menos una etiqueta para continuar.")
+            if not nombre_ruta: st.warning("⚠️ Debes ponerle un nombre a la ruta.")
+            elif not tags_seleccionados: st.warning("⚠️ Selecciona al menos una etiqueta para continuar.")
             elif st.session_state.get('usuario_logueado'):
                 user_id = st.session_state['usuario_logueado']['id']
                 username = st.session_state['usuario_logueado']['username']
                 
-                # 🚀 Añadido 'tags_seleccionados' a los parámetros
                 exito_guardar = route_repo.guardar_ruta(
-                    user_id, 
-                    username, 
-                    nombre_ruta, 
-                    desc_ruta, 
+                    user_id, username, nombre_ruta, desc_ruta, 
                     st.session_state['ruta_calculada']['geometria'],
-                    imagen_ruta,
-                    tags_seleccionados # <--- AHORA SE PASA A LA FUNCIÓN DE GUARDADO
+                    imagen_ruta, tags_seleccionados
                 )
                 
                 if exito_guardar: 
                     st.success("✅ ¡Ruta e imagen guardadas correctamente!")
                     st.balloons()
-                else: 
-                    st.error("Hubo un error al guardar.")
+                else: st.error("Hubo un error al guardar.")
             else:
                 st.warning("⚠️ Debes iniciar sesión para poder guardar rutas.")

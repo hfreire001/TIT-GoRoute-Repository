@@ -3,28 +3,24 @@ import glob
 from datos import user_repo
 
 def delete_route(route_id, user_id):
-    """Tu lógica original de borrado y reordenado de archivos"""
-    routes_raw = user_repo.get_user_routes(user_id)
-    indice_borrar = -1
-    for index, r in enumerate(routes_raw):
-        if r[0] == route_id:
-            indice_borrar = index + 1
-            break
-    if indice_borrar == -1: return False
-
+    """
+    Borra la ruta de la base de datos y su imagen física.
+    Al usar el ID como nombre, ya no necesitamos reordenar archivos.
+    """
+    # 1. Borramos de la base de datos
     db_success = user_repo.delete_route_db(route_id, user_id)
+    
     if db_success:
-        patron_borrar = f"imagenes/{user_id}/rutas/imagen{indice_borrar}.*"
+        # 2. Borramos el archivo físico (buscamos cualquier extensión con ese ID)
+        # Ruta: imagenes/{user_id}/rutas/{route_id}.*
+        patron_borrar = rf"C:\Users\garaz\OneDrive\Escritorio\UNIVERSIDAD\Cuarto\TAP\Plan&Go\imagenes\{user_id}\rutas\{route_id}.*"
+        
         for f in glob.glob(patron_borrar):
-            os.remove(f)
-        total_rutas_originales = len(routes_raw)
-        for i in range(indice_borrar + 1, total_rutas_originales + 1):
-            patron_siguiente = f"imagenes/{user_id}/rutas/imagen{i}.*"
-            for f_antiguo in glob.glob(patron_siguiente):
-                extension = os.path.splitext(f_antiguo)[1]
-                nuevo_nombre = f"imagenes/{user_id}/rutas/imagen{i-1}{extension}"
-                try: os.rename(f_antiguo, nuevo_nombre)
-                except Exception: pass
+            try:
+                os.remove(f)
+            except Exception as e:
+                print(f"Error al eliminar archivo físico: {e}")
+                
     return db_success
 
 def get_full_profile(user_id):
@@ -32,40 +28,38 @@ def get_full_profile(user_id):
     if not user_raw: return None
 
     seguidores, seguidos = user_repo.get_social_counts(user_id)
-    # Obtenemos las rutas (asegúrate de que el SQL en user_repo tenga los 5 campos)
     routes_raw = user_repo.get_user_routes(user_id) 
 
-    # 1. Avatar (Lógica original)
+    # 1. Avatar
     foto_perfil = "https://www.w3schools.com/howto/img_avatar.png"
-    # SOLUCIÓN: Añadimos la 'r' minúscula justo antes de la 'f' para evitar el error de unicode
     base_avatar = rf"C:\Users\garaz\OneDrive\Escritorio\UNIVERSIDAD\Cuarto\TAP\Plan&Go\imagenes\{user_id}\avatar\imagen1"
     
     for ext in ['jpg', 'png', 'jpeg', 'webp']:
         if os.path.exists(f"{base_avatar}.{ext}"):
-            foto_perfil = f"{base_avatar}.{ext}"
+            # Para mostrar en Streamlit, usamos la ruta relativa
+            foto_perfil = f"imagenes/{user_id}/avatar/imagen1.{ext}"
             break
 
-    # 2. Rutas con lógica de archivos + CONTADORES
+    # 2. Rutas (Buscando por ID de ruta)
     rutas_procesadas = []
     
-    # --- AQUÍ SE INTEGRA EL BLOQUE QUE PEDISTE ---
-    for index, r in enumerate(routes_raw):
-        r_id = r[0]
+    for r in routes_raw:
+        r_id = r[0]         # El ID real (ej: 15)
         r_name = r[1]
-        r_likes = r[2]      # Conteo de likes
-        r_comments = r[3]   # Conteo de comentarios
-        r_saved = r[4]      # Conteo de favoritos/guardados
+        r_likes = r[2]
+        r_comments = r[3]
+        r_saved = r[4]
 
-        # Lógica para encontrar la imagen física correspondiente
-        n_imagen = index + 1
+        # Por defecto, imagen de relleno
         ruta_img = "https://via.placeholder.com/300x200?text=Sin+Imagen"
         
-        # SOLUCIÓN: Añadimos la 'r' minúscula justo antes de la 'f'
-        base_ruta = rf"C:\Users\garaz\OneDrive\Escritorio\UNIVERSIDAD\Cuarto\TAP\Plan&Go\imagenes\{user_id}\rutas\imagen{n_imagen}"
+        # Buscamos el archivo que se llame exactamente como el ID (ej: 15.jpg)
+        base_ruta_fisica = rf"C:\Users\garaz\OneDrive\Escritorio\UNIVERSIDAD\Cuarto\TAP\Plan&Go\imagenes\{user_id}\rutas\{r_id}"
         
         for ext in ['jpg', 'png', 'jpeg', 'webp']:
-            if os.path.exists(f"{base_ruta}.{ext}"):
-                ruta_img = f"{base_ruta}.{ext}"
+            if os.path.exists(f"{base_ruta_fisica}.{ext}"):
+                # Si existe, devolvemos la ruta relativa para que Streamlit la cargue
+                ruta_img = f"imagenes/{user_id}/rutas/{r_id}.{ext}"
                 break
         
         rutas_procesadas.append({
