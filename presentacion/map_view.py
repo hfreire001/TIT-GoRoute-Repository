@@ -42,8 +42,7 @@ def render():
         # Aquí ya tienes tu función cargar_modo_lectura que muestra la ruta
         cargar_modo_lectura(st.session_state['ruta_activa_id'])
     else:
-        # Título dinámico para el creador
-        st.title("📍 Diseña tu nueva ruta")
+        render_creador_normal()
 
 # 🚀 LA NUEVA VISTA PARA EXPLORAR RUTAS
 def cargar_modo_lectura(route_id):
@@ -105,7 +104,8 @@ def cargar_modo_lectura(route_id):
 
 # TU CREADOR ORIGINAL (Renombrado a render_creador_normal)
 def render_creador_normal():
-    st.title("📍 Creador de Rutas")
+    # Título dinámico para el creador
+    st.title("📍 Diseña tu nueva ruta")
     st.write("Añade paradas, organízalas a tu gusto y pulsa 'Calcular' cuando lo tengas claro.")
 
     if 'puntos_ruta' not in st.session_state:

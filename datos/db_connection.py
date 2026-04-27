@@ -4,14 +4,14 @@ from psycopg2 import Error
 from psycopg2.errors import UniqueViolation
 import streamlit as st
 
-@st.cache_resource
+
 def connect():
     conexion = None
     cursor = None # Inicializamos el cursor aquí para que no rompa el bloque finally
     try:
         # 1. Configuración de la conexión
         conexion = psycopg2.connect(
-            host="10.199.150.50",
+            host="10.116.118.50",
             port="5432",
             database="Usuario",  # Asegúrate de que no sea 'usuario' en minúscula
             user="postgres",
