@@ -2,7 +2,9 @@ import psycopg2
 import bcrypt
 from psycopg2 import Error
 from psycopg2.errors import UniqueViolation
+import streamlit as st
 
+@st.cache_resource
 def connect():
     conexion = None
     cursor = None # Inicializamos el cursor aquí para que no rompa el bloque finally
