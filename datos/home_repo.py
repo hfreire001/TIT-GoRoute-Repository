@@ -25,7 +25,7 @@ def obtener_rutas_feed(user_id):
         """
         cursor.execute(query, (user_id, user_id, user_id))
         
-        columnas = [desc[0] for desc in cursor.description]
+        columnas = [desc[0] for desc in cursor.description] # type: ignore
         filas = cursor.fetchall()
         return [dict(zip(columnas, fila)) for fila in filas]
     # ... resto del código igual
