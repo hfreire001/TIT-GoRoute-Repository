@@ -1,12 +1,15 @@
 import streamlit as st
 
-# 🚀 NUEVO: Importamos register_view junto con las demás
-from presentacion import login_view, home_view, profile_view, map_view, register_view
+# Importamos las vistas principales
+from presentacion import login_view, home_view, profile_view, map_view, register_view, search_view
+# Importamos el chat desde su subcarpeta
+from presentacion.vistas import chat_view
 
 st.set_page_config(page_title="Plan&Go", layout="wide", page_icon="📍")
 
 def main():
-    opciones_menu = ["🏠 Feed", "📍 Crear ruta", "👤 Perfil"]
+    # 🚀 NUEVO: Añadimos Explorar (Buscador) y Chat a las opciones del menú
+    opciones_menu = ["🏠 Feed", "🔍 Explorar", "📍 Crear ruta", "💬 Chat", "👤 Perfil"]
 
     # 1. Inicialización de sesión
     if 'usuario_logueado' not in st.session_state:
@@ -15,7 +18,6 @@ def main():
     if 'pagina_actual' not in st.session_state:
         st.session_state['pagina_actual'] = "🏠 Feed"
         
-    # 🚀 NUEVO: Control de la pantalla inicial (Login vs Registro)
     if 'pantalla_actual' not in st.session_state:
         st.session_state['pantalla_actual'] = "Login"
         
@@ -27,7 +29,6 @@ def main():
 
     # 3. Lógica de Navegación Inicial
     if st.session_state['usuario_logueado'] is None:
-        # 🚀 NUEVO: Aquí decidimos si mostrar Login o Registro
         if st.session_state['pantalla_actual'] == "Login":
             login_view.render() 
         elif st.session_state['pantalla_actual'] == "Registrarse":
@@ -52,14 +53,25 @@ def main():
             if st.button("Cerrar Sesión"):
                 st.session_state['usuario_logueado'] = None
                 st.session_state['pagina_actual'] = "🏠 Feed" 
-                st.session_state['pantalla_actual'] = "Login" # 🚀 NUEVO: Reseteamos al login al salir
+                st.session_state['pantalla_actual'] = "Login"
                 st.rerun()
                 
         # 4. Renderizado de la vista seleccionada
         if st.session_state['pagina_actual'] == "🏠 Feed":
             home_view.render()
+            
+        elif st.session_state['pagina_actual'] == "🔍 Explorar":
+            # 🚀 NUEVO: Renderiza la vista de búsqueda
+            search_view.render_search()
+            
         elif st.session_state['pagina_actual'] == "📍 Crear ruta":
             map_view.render()
+            
+        elif st.session_state['pagina_actual'] == "💬 Chat":
+            # 🚀 NUEVO: Renderiza la vista del chat
+            # (Nota: Asumo que la función se llama render(). Si necesita el id_actual, cámbialo a render(id_actual))
+            chat_view.render()
+            
         elif st.session_state['pagina_actual'] == "👤 Perfil":
             id_actual = st.session_state['usuario_logueado']['id']
             profile_view.render_profile(id_actual)
