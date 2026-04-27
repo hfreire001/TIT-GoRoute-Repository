@@ -70,7 +70,7 @@ def main():
         elif st.session_state['pagina_actual'] == "💬 Chat":
             # 🚀 NUEVO: Renderiza la vista del chat
             # (Nota: Asumo que la función se llama render(). Si necesita el id_actual, cámbialo a render(id_actual))
-            chat_view.render()
+            chat_view.render_chat_view()
             
         elif st.session_state['pagina_actual'] == "👤 Perfil":
             id_actual = st.session_state['usuario_logueado']['id']
