@@ -24,58 +24,53 @@ def delete_route(route_id, user_id):
     return db_success
 
 def get_full_profile(user_id):
-    user_raw = user_repo.get_user_data(user_id)
-    if not user_raw: return None
+    user_data = user_repo.get_user_data(user_id)
+    if not user_data: return None
 
+    username, bio, avatar_url, email = user_data
     seguidores, seguidos = user_repo.get_social_counts(user_id)
-    routes_raw = user_repo.get_user_routes(user_id) 
-
-    # 1. Avatar
-    foto_perfil = "https://www.w3schools.com/howto/img_avatar.png"
-    base_avatar = rf"C:\Users\garaz\OneDrive\Escritorio\UNIVERSIDAD\Cuarto\TAP\Plan&Go\imagenes\{user_id}\avatar\imagen1"
-    
-    for ext in ['jpg', 'png', 'jpeg', 'webp']:
-        if os.path.exists(f"{base_avatar}.{ext}"):
-            # Para mostrar en Streamlit, usamos la ruta relativa
-            foto_perfil = f"imagenes/{user_id}/avatar/imagen1.{ext}"
-            break
-
-    # 2. Rutas (Buscando por ID de ruta)
-    rutas_procesadas = []
-    
-    for r in routes_raw:
-        r_id = r[0]         # El ID real (ej: 15)
-        r_name = r[1]
-        r_likes = r[2]
-        r_comments = r[3]
-        r_saved = r[4]
-
-        # Por defecto, imagen de relleno
-        ruta_img = "https://via.placeholder.com/300x200?text=Sin+Imagen"
-        
-        # Buscamos el archivo que se llame exactamente como el ID (ej: 15.jpg)
-        base_ruta_fisica = rf"C:\Users\garaz\OneDrive\Escritorio\UNIVERSIDAD\Cuarto\TAP\Plan&Go\imagenes\{user_id}\rutas\{r_id}"
-        
-        for ext in ['jpg', 'png', 'jpeg', 'webp']:
-            if os.path.exists(f"{base_ruta_fisica}.{ext}"):
-                # Si existe, devolvemos la ruta relativa para que Streamlit la cargue
-                ruta_img = f"imagenes/{user_id}/rutas/{r_id}.{ext}"
-                break
-        
-        rutas_procesadas.append({
-            "id": r_id,
-            "nombre": r_name,
-            "miniatura": ruta_img,
-            "likes": r_likes,
-            "comentarios": r_comments,
-            "guardados": r_saved
-        })
+    # Vienen como diccionarios directos del repo
+    rutas_procesadas = user_repo.get_user_routes(user_id)
 
     return {
-        "username": user_raw[0],
-        "bio": user_raw[1],
-        "foto": foto_perfil,
+        "username": username,
+        "bio": bio if bio else "",
+        "foto": avatar_url,
+        "email": email if email else "", # 🚀 ESTA LÍNEA ES CLAVE
         "seguidores": seguidores,
         "seguidos": seguidos,
         "rutas": rutas_procesadas
     }
+
+def obtener_estado_interacciones(route_id, user_id):
+    return user_repo.obtener_estado_interacciones(route_id, user_id)
+
+import os
+import bcrypt
+from datos import user_repo
+
+import os
+from datos import user_repo
+
+def actualizar_perfil_completo(user_id, username, email, bio, password, imagen_file):
+    # 1. Procesar contraseña: si tiene texto, la pasamos tal cual
+    pw_final = None
+    if password and password.strip():
+        pw_final = password.strip()
+    
+    # 2. Procesar imagen si se subió una nueva
+    avatar_url = None
+    if imagen_file:
+        ext = imagen_file.name.split('.')[-1]
+        filename = f"avatar_{user_id}.{ext}"
+        folder = os.path.join("imagenes", str(user_id), "perfil")
+        os.makedirs(folder, exist_ok=True)
+        path_fisico = os.path.join(folder, filename)
+        
+        with open(path_fisico, "wb") as f:
+            f.write(imagen_file.getbuffer())
+        
+        avatar_url = f"imagenes/{user_id}/perfil/{filename}"
+    
+    # 3. Llamar al repositorio con la pass en texto plano
+    return user_repo.update_user_full(user_id, username, email, bio, pw_final, avatar_url)

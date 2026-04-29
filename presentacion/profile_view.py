@@ -16,142 +16,184 @@ def get_image_base64(path):
             return None
     return None
 
-def render_profile(user_id):
-    # 🚀 CONTROL MODO PUBLICACIÓN
-    modo = st.session_state.get('modo_perfil', 'grid')
-    
-    if modo == 'publicacion' and 'ruta_ver_publicacion' in st.session_state:
-        ruta_perfil = st.session_state['ruta_ver_publicacion']
-        usuario_logueado = st.session_state.get('usuario_logueado')
-        
-        if st.button("⬅️ Volver al Perfil"):
-            st.session_state['modo_perfil'] = 'grid'
-            st.rerun()
-            
-        st.divider()
-        
-        # --- 🚀 ADAPTADOR DE DATOS (LA MAGIA) ---
-        # Como tu home_view.py espera un diccionario con "name", "imagen_bytes", etc...
-        # se lo fabricamos aquí usando los datos de tu perfil sin tocar el home_view.
-        
-        datos_ruta = route_repo.get_route_by_id(ruta_perfil['id'])
-        nombre, desc, geom_json, tags, dist, waypoints = datos_ruta if datos_ruta else (ruta_perfil.get('nombre'), "", "", [], 0, "")
-        
-        img_bytes = get_image_base64(ruta_perfil.get("miniatura"))
-        user_info = profile_service.get_full_profile(user_id)
-        
-        ruta_adaptada = {
-            'id': ruta_perfil['id'],
-            'username': user_info['username'] if user_info else "Usuario",
-            'creator_id': user_id,
-            'name': nombre,
-            'description': desc,
-            'tags': tags,
-            'imagen_bytes': img_bytes if img_bytes else "https://via.placeholder.com/800x400?text=Sin+Imagen",
-            'num_likes': ruta_perfil.get('likes', 0)
-            # home_view usa .get() para user_has_liked, así que si no se lo pasamos no da error.
-        }
-        
-        # ¡Llamamos a tu función pasando los dos diccionarios completos que espera!
-        home_view.render_publication(ruta_adaptada, usuario_logueado)
-        
-        # Paramos la ejecución para no dibujar la cuadrícula debajo
-        return 
+import streamlit as st
+from negocio import profile_service
+from presentacion import home_view
+import base64
+import os
 
-    # --- DISEÑO DE LA CUADRÍCULA (INTACTO) ---
+def get_image_base64(path):
+    """Convierte una imagen en base64 para mostrarla en HTML."""
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        with open(path, "rb") as image_file:
+            encoded = base64.b64encode(image_file.read()).decode()
+            return f"data:image/png;base64,{encoded}"
+    except:
+        return None
+
+def render_profile(user_id):
+    # Control de navegación interna del perfil
+    if 'modo_perfil' not in st.session_state:
+        st.session_state['modo_perfil'] = 'grid'
+
+    modo = st.session_state['modo_perfil']
+    usuario_logueado = st.session_state.get('usuario_logueado')
+
+    # 1. ESTILOS CSS (Para que la cuadrícula y el hover funcionen)
     st.markdown("""
         <style>
             .avatar-container { display: flex; justify-content: center; margin-bottom: 20px; }
             .avatar-circle {
-                width: 160px !important; height: 160px !important;
-                border-radius: 50% !important; object-fit: cover !important;
-                border: 4px solid #4CAF50; box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+                width: 150px; height: 150px;
+                border-radius: 50%; object-fit: cover;
+                border: 3px solid #4CAF50;
             }
             .route-card {
-                background-color: #ffffff; border-radius: 15px;
-                padding: 10px; text-align: center; margin-bottom: 15px;
-                box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+                background-color: #f9f9f9; border-radius: 10px;
+                padding: 5px; text-align: center; margin-bottom: 10px;
+                border: 1px solid #ddd;
             }
             .img-container {
-                position: relative; width: 100%; height: 180px;
-                border-radius: 10px; overflow: hidden;
+                position: relative; width: 100%; height: 150px;
+                border-radius: 8px; overflow: hidden;
             }
             .route-img-fixed {
-                width: 100% !important; height: 100% !important;
-                object-fit: cover !important; transition: 0.3s ease;
+                width: 100%; height: 100%; object-fit: cover;
             }
             .overlay {
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0, 0, 0, 0.6); color: white;
+                background: rgba(0, 0, 0, 0.7); color: white;
                 display: flex; justify-content: center; align-items: center;
-                gap: 15px; opacity: 0; transition: 0.3s ease;
+                gap: 10px; opacity: 0; transition: 0.3s;
             }
             .img-container:hover .overlay { opacity: 1; }
-            .img-container:hover .route-img-fixed { transform: scale(1.05); }
-            .route-title {
-                font-weight: bold; font-size: 1.1em;
-                color: #000000 !important; margin: 10px 0;
-            }
-            .stat-item { display: flex; flex-direction: column; align-items: center; font-size: 0.9em; }
+            .stat-item { display: flex; flex-direction: column; font-size: 0.8em; }
+            .route-title { font-weight: bold; margin-top: 5px; font-size: 0.9em; }
         </style>
     """, unsafe_allow_html=True)
 
-    user = profile_service.get_full_profile(user_id)
-    if not user:
-        st.error(f"No se pudo cargar el perfil para el ID: {user_id}")
+    # 2. MODO PUBLICACIÓN INDIVIDUAL (Cuando haces clic en "Ver")
+    if modo == 'publicacion' and 'ruta_ver_publicacion' in st.session_state:
+        ruta_p = st.session_state['ruta_ver_publicacion']
+        
+        if st.button("⬅️ Volver al Perfil"):
+            st.session_state['modo_perfil'] = 'grid'
+            st.rerun()
+
+        st.divider()
+        
+        # Obtenemos estado real de interacciones para pintar botones rojo/amarillo
+        h_liked, h_fav = False, False
+        if usuario_logueado:
+            h_liked, h_fav = profile_service.obtener_estado_interacciones(ruta_p['id'], usuario_logueado['id'])
+        
+        # Adaptador para que home_view entienda los datos
+        ruta_adaptada = {
+            'id': ruta_p['id'],
+            'username': usuario_logueado['username'] if usuario_logueado else "Usuario",
+            'creator_id': user_id,
+            'name': ruta_p.get('nombre'),
+            'description': "Descripción de la ruta", # Puedes traer esto del repo si quieres
+            'tags': [],
+            'imagen_bytes': get_image_base64(ruta_p.get('miniatura')),
+            'num_likes': ruta_p.get('likes', 0),
+            'user_has_liked': h_liked,
+            'user_has_favorited': h_fav
+        }
+        
+        home_view.render_publication(ruta_adaptada, usuario_logueado)
         return
 
-    # Cabecera
-    col_foto, col_info = st.columns([1, 2.5])
-    with col_foto:
-        img_data = get_image_base64(user["foto"])
-        avatar_src = img_data if img_data else "https://www.w3schools.com/howto/img_avatar.png"
-        st.markdown(f'<div class="avatar-container"><img src="{avatar_src}" class="avatar-circle"></div>', unsafe_allow_html=True)
+    # 3. MODO CUADRÍCULA (Perfil Principal)
+    user = profile_service.get_full_profile(user_id)
+    if not user:
+        st.error("No se encontró el usuario.")
+        return
 
-    with col_info:
+    # Cabecera del perfil
+    col_f, col_i = st.columns([1, 2])
+    with col_f:
+        avatar_src = get_image_base64(user["foto"]) or "https://www.w3schools.com/howto/img_avatar.png"
+        st.markdown(f'<div class="avatar-container"><img src="{avatar_src}" class="avatar-circle"></div>', unsafe_allow_html=True)
+    
+    with col_i:
         st.title(user["username"])
         m1, m2, m3 = st.columns(3)
         m1.metric("Seguidores", user["seguidores"])
         m2.metric("Seguidos", user["seguidos"])
         m3.metric("Rutas", len(user["rutas"]))
         st.write(f"**Bio:** {user['bio'] if user['bio'] else 'Sin biografía.'}")
-        st.button("✏️ Editar Perfil", use_container_width=True)
+   
+    # 🚀 POP-UP DE EDICIÓN MEJORADO
+        with st.popover("✏️ Editar Perfil", use_container_width=True):
+            st.subheader("Configuración de Perfil")
+            with st.form("edit_profile_form", border=False):
+                # Campos con valores actuales por defecto
+                new_username = st.text_input("Nombre de usuario", value=user["username"])
+                
+                # El email ahora se carga desde el diccionario 'user' que devuelve el servicio
+                current_email = user.get("email", "")
+                new_email = st.text_input("Correo electrónico", value=current_email)
+                
+                new_bio = st.text_area("Biografía", value=user["bio"])
+                
+                st.write("---")
+                st.caption("Solo rellena si deseas cambiar:")
+                new_pass = st.text_input("Nueva contraseña", type="password", placeholder="Dejar vacío para no cambiar")
+                new_img = st.file_uploader("Actualizar foto de perfil", type=["png", "jpg", "jpeg"])
+                
+                if st.form_submit_button("Guardar cambios", type="primary", use_container_width=True):
+                    # Validamos que al menos los campos obligatorios no estén vacíos por error
+                    if not new_username or not new_email:
+                        st.warning("El nombre de usuario y el email no pueden estar vacíos.")
+                    else:
+                        success = profile_service.actualizar_perfil_completo(
+                            user_id, new_username, new_email, new_bio, new_pass, new_img
+                        )
+                        if success:
+                            # Actualizamos la sesión para que el cambio sea instantáneo en toda la app
+                            st.session_state['usuario_logueado']['username'] = new_username
+                            st.success("¡Perfil actualizado!")
+                            st.rerun()
+                        else:
+                            st.error("Error al actualizar. Verifica si el usuario o email ya existen.")
 
     st.divider()
     st.subheader("📍 Mis Rutas Publicadas")
-    
+
+    # Cuadrícula de fotos
     if not user["rutas"]:
-        st.info("No hay rutas creadas todavía.")
+        st.info("Aún no has publicado ninguna ruta.")
     else:
         cols = st.columns(3)
         for i, ruta in enumerate(user["rutas"]):
             with cols[i % 3]:
-                r_img_data = get_image_base64(ruta["miniatura"])
-                r_src = r_img_data if r_img_data else "https://via.placeholder.com/300x200?text=Sin+Imagen"
+                r_src = get_image_base64(ruta.get("miniatura")) or "https://via.placeholder.com/300"
                 
+                # Renderizado de la tarjeta con contadores
                 st.markdown(f'''
                     <div class="route-card">
                         <div class="img-container">
                             <img src="{r_src}" class="route-img-fixed">
                             <div class="overlay">
-                                <div class="stat-item"><span>❤️</span><span>{ruta['likes']}</span></div>
-                                <div class="stat-item"><span>💬</span><span>{ruta['comentarios']}</span></div>
-                                <div class="stat-item"><span>🔖</span><span>{ruta['guardados']}</span></div>
+                                <div class="stat-item"><span>❤️</span><span>{ruta.get('likes', 0)}</span></div>
+                                <div class="stat-item"><span>💬</span><span>{ruta.get('comentarios', 0)}</span></div>
+                                <div class="stat-item"><span>⭐</span><span>{ruta.get('guardados', 0)}</span></div>
                             </div>
                         </div>
-                        <div class="route-title">{ruta["nombre"]}</div>
+                        <div class="route-title">{ruta.get('nombre', 'Sin nombre')}</div>
                     </div>
                 ''', unsafe_allow_html=True)
                 
-                c1, c2 = st.columns([3, 1])
-                with c1:
-                    # 🚀 AHORA GUARDAMOS EL DICCIONARIO DE LA RUTA EN VEZ DEL ID
-                    if st.button("👁️ Ver publicación", key=f"pub_{ruta['id']}", use_container_width=True):
-                        st.session_state['modo_perfil'] = 'publicacion'
-                        st.session_state['ruta_ver_publicacion'] = ruta
-                        st.rerun() 
-                            
-                with c2:
-                    if st.button("🗑️", key=f"d_{ruta['id']}", use_container_width=True):
-                        if profile_service.delete_route(ruta['id'], user_id):
-                            st.rerun()
+                # Botones de acción
+                btn_col1, btn_col2 = st.columns([3, 1])
+                if btn_col1.button("👁️ Ver publicación", key=f"ver_{ruta['id']}", use_container_width=True):
+                    st.session_state['modo_perfil'] = 'publicacion'
+                    st.session_state['ruta_ver_publicacion'] = ruta
+                    st.rerun()
+                
+                if btn_col2.button("🗑️", key=f"del_{ruta['id']}", use_container_width=True):
+                    if profile_service.delete_route(ruta['id'], user_id):
+                        st.rerun()

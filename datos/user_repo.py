@@ -51,8 +51,6 @@ def crear_usuario(username, email, password_hash):
     finally:
         cursor.close()
         close(conexion)
-# datos/user_repo.py
-from datos.db_connection import connect, close
 
 def get_user_data(user_id):
     """Obtiene info de la tabla 'users'."""
@@ -60,7 +58,7 @@ def get_user_data(user_id):
     if not cursor:
         return None
     try:
-        query = "SELECT username, bio, avatar_url FROM users WHERE id = %s"
+        query = "SELECT username, bio, avatar_url, email FROM users WHERE id = %s"
         cursor.execute(query, (user_id,))
         return cursor.fetchone()
     finally:
@@ -87,30 +85,44 @@ def get_social_counts(user_id):
             close(conn)
 
 def get_user_routes(user_id):
-    """Obtiene las rutas con sus respectivos contadores de interacción."""
+    """Obtiene las rutas con contadores reales empaquetados en diccionarios."""
     cursor = connect()
     if not cursor: return []
+    conexion = cursor.connection
     try:
-        # Añadimos subconsultas para contar likes, comentarios y favoritos
         query = """
             SELECT 
                 r.id, 
-                r.name, 
-                (SELECT COUNT(*) FROM likes WHERE route_id = r.id) as total_likes,
-                (SELECT COUNT(*) FROM comments WHERE route_id = r.id) as total_comments,
-                (SELECT COUNT(*) FROM favorites WHERE route_id = r.id) as total_favs,
-                r.created_at
+                r.name as nombre, 
+                r.thumbnail_url as miniatura,
+                (SELECT COUNT(*) FROM likes WHERE route_id = r.id) as likes,
+                (SELECT COUNT(*) FROM comments WHERE route_id = r.id) as comentarios,
+                (SELECT COUNT(*) FROM favorites WHERE route_id = r.id) as guardados
             FROM routes r
             WHERE r.creator_id = %s 
-            ORDER BY r.created_at ASC
+            ORDER BY r.created_at DESC
         """
         cursor.execute(query, (user_id,))
-        return cursor.fetchall() 
+        columnas = [desc[0] for desc in cursor.description]
+        return [dict(zip(columnas, fila)) for fila in cursor.fetchall()]
     finally:
-        if cursor:
-            conn = cursor.connection
-            cursor.close()
-            close(conn)
+        cursor.close()
+        close(conexion)
+
+def obtener_estado_interacciones(route_id, user_id):
+    """Devuelve si el usuario logueado tiene like y fav en esta ruta."""
+    cursor = connect()
+    if not cursor: return False, False
+    conexion = cursor.connection
+    try:
+        cursor.execute("SELECT 1 FROM likes WHERE user_id = %s AND route_id = %s", (user_id, route_id))
+        has_liked = cursor.fetchone() is not None
+        cursor.execute("SELECT 1 FROM favorites WHERE user_id = %s AND route_id = %s", (user_id, route_id))
+        has_fav = cursor.fetchone() is not None
+        return has_liked, has_fav
+    finally:
+        cursor.close()
+        close(conexion)
 
 def delete_route_db(route_id, user_id):
     """Elimina la ruta de la DB."""
@@ -129,3 +141,59 @@ def delete_route_db(route_id, user_id):
             conn = cursor.connection
             cursor.close()
             close(conn)
+
+def obtener_interacciones_en_vivo(route_id, user_id):
+    """Devuelve si el usuario le dio like, fav y el total de likes en tiempo real."""
+    cursor = connect()
+    if not cursor: return False, False, 0
+    try:
+        cursor.execute("SELECT 1 FROM likes WHERE user_id = %s AND route_id = %s", (user_id, route_id))
+        has_liked = cursor.fetchone() is not None
+        
+        cursor.execute("SELECT 1 FROM favorites WHERE user_id = %s AND route_id = %s", (user_id, route_id))
+        has_fav = cursor.fetchone() is not None
+        
+        cursor.execute("SELECT COUNT(*) FROM likes WHERE route_id = %s", (route_id,))
+        total_likes = cursor.fetchone()[0]
+        
+        return has_liked, has_fav, total_likes
+    except Exception as e:
+        print(f"❌ Error al obtener interacciones: {e}")
+        return False, False, 0
+    finally:
+        if cursor:
+            conn = cursor.connection
+            cursor.close()
+            close(conn)
+
+def update_user_full(user_id, username, email, bio, password_plana, avatar_url):
+    cursor = connect()
+    if not cursor: return False
+    conn = cursor.connection
+    try:
+        # Campos básicos
+        query = "UPDATE users SET username = %s, email = %s, bio = %s"
+        params = [username, email, bio]
+        
+        # Si el usuario escribió algo en el campo password
+        if password_plana:
+            query += ", password_hash = %s" # <--- Cambia 'password_hash' por el nombre real de tu columna
+            params.append(password_plana)
+            
+        if avatar_url:
+            query += ", avatar_url = %s"
+            params.append(avatar_url)
+            
+        query += " WHERE id = %s"
+        params.append(user_id)
+        
+        cursor.execute(query, tuple(params))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error update_user_full: {e}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        close(conn)

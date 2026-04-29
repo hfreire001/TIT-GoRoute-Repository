@@ -52,6 +52,7 @@ def render_publication(ruta, usuario):
         
         with col_like:
             liked = ruta.get('user_has_liked')
+            # 🚀 Corazón ROJO si tiene like, BLANCO si no
             corazon = "❤️" if liked else "🤍"
             if st.button(corazon, key=f"like_{ruta['id']}"):
                 home_service.gestionar_like(usuario['id'], ruta['id'], liked)
@@ -59,6 +60,7 @@ def render_publication(ruta, usuario):
         
         with col_fav:
             es_fav = ruta.get('user_has_favorited')
+            # 🚀 Estrella AMARILLA si está guardado, BLANCA/HUECA si no
             estrella = "⭐" if es_fav else "☆"
             if st.button(estrella, key=f"fav_{ruta['id']}"):
                 home_service.gestionar_favorito(usuario['id'], ruta['id'], es_fav)
