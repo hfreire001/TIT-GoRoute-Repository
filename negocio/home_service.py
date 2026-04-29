@@ -36,6 +36,10 @@ def gestionar_like(user_id, route_id, estado_actual):
     # ¡Le pasamos el estado tal cual al repositorio, sin invertirlo!
     home_repo.alternar_like(user_id, route_id, estado_actual)
 
+def gestionar_favorito(user_id, route_id, estado_actual):
+    """Llamada al repositorio para guardar/quitar de favoritos"""
+    home_repo.alternar_favorito(user_id, route_id, estado_actual)
+
 def obtener_nombres_likes(route_id):
     return home_repo.obtener_usuarios_like(route_id)
 

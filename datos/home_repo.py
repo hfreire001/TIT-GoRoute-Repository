@@ -51,6 +51,25 @@ def alternar_like(user_id, route_id, estado_actual):
         if cursor and cursor.connection: 
             cursor.connection.close()
 
+def alternar_favorito(user_id, route_id, estado_actual):
+    """Inserta o elimina de la tabla favorites"""
+    cursor = connect()
+    if not cursor: return
+    try:
+        if estado_actual:
+            # Si ya es favorito, lo quitamos
+            cursor.execute("DELETE FROM favorites WHERE user_id = %s AND route_id = %s", (user_id, route_id))
+        else:
+            # Si no lo es, lo añadimos
+            cursor.execute("INSERT INTO favorites (user_id, route_id) VALUES (%s, %s)", (user_id, route_id))
+        
+        cursor.connection.commit()
+    except Exception as e:
+        print(f"❌ Error en favorito: {e}")
+    finally:
+        if cursor and cursor.connection: 
+            cursor.connection.close()
+
 def obtener_usuarios_like(route_id):
     cursor = connect()
     if not cursor: return []

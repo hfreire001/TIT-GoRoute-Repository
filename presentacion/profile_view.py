@@ -2,6 +2,8 @@ import streamlit as st
 from negocio import profile_service
 import base64
 import os
+from presentacion import home_view  
+from datos import route_repo # 🚀 Importamos esto para coger los tags y descripción
 
 def get_image_base64(path):
     if path and os.path.exists(path):
@@ -15,7 +17,48 @@ def get_image_base64(path):
     return None
 
 def render_profile(user_id):
-    # CSS con efecto Hover y Título Negro
+    # 🚀 CONTROL MODO PUBLICACIÓN
+    modo = st.session_state.get('modo_perfil', 'grid')
+    
+    if modo == 'publicacion' and 'ruta_ver_publicacion' in st.session_state:
+        ruta_perfil = st.session_state['ruta_ver_publicacion']
+        usuario_logueado = st.session_state.get('usuario_logueado')
+        
+        if st.button("⬅️ Volver al Perfil"):
+            st.session_state['modo_perfil'] = 'grid'
+            st.rerun()
+            
+        st.divider()
+        
+        # --- 🚀 ADAPTADOR DE DATOS (LA MAGIA) ---
+        # Como tu home_view.py espera un diccionario con "name", "imagen_bytes", etc...
+        # se lo fabricamos aquí usando los datos de tu perfil sin tocar el home_view.
+        
+        datos_ruta = route_repo.get_route_by_id(ruta_perfil['id'])
+        nombre, desc, geom_json, tags, dist, waypoints = datos_ruta if datos_ruta else (ruta_perfil.get('nombre'), "", "", [], 0, "")
+        
+        img_bytes = get_image_base64(ruta_perfil.get("miniatura"))
+        user_info = profile_service.get_full_profile(user_id)
+        
+        ruta_adaptada = {
+            'id': ruta_perfil['id'],
+            'username': user_info['username'] if user_info else "Usuario",
+            'creator_id': user_id,
+            'name': nombre,
+            'description': desc,
+            'tags': tags,
+            'imagen_bytes': img_bytes if img_bytes else "https://via.placeholder.com/800x400?text=Sin+Imagen",
+            'num_likes': ruta_perfil.get('likes', 0)
+            # home_view usa .get() para user_has_liked, así que si no se lo pasamos no da error.
+        }
+        
+        # ¡Llamamos a tu función pasando los dos diccionarios completos que espera!
+        home_view.render_publication(ruta_adaptada, usuario_logueado)
+        
+        # Paramos la ejecución para no dibujar la cuadrícula debajo
+        return 
+
+    # --- DISEÑO DE LA CUADRÍCULA (INTACTO) ---
     st.markdown("""
         <style>
             .avatar-container { display: flex; justify-content: center; margin-bottom: 20px; }
@@ -37,7 +80,6 @@ def render_profile(user_id):
                 width: 100% !important; height: 100% !important;
                 object-fit: cover !important; transition: 0.3s ease;
             }
-            /* Capa sombreada oculta */
             .overlay {
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: rgba(0, 0, 0, 0.6); color: white;
@@ -46,8 +88,6 @@ def render_profile(user_id):
             }
             .img-container:hover .overlay { opacity: 1; }
             .img-container:hover .route-img-fixed { transform: scale(1.05); }
-            
-            /* Título en negro */
             .route-title {
                 font-weight: bold; font-size: 1.1em;
                 color: #000000 !important; margin: 10px 0;
@@ -87,9 +127,8 @@ def render_profile(user_id):
         for i, ruta in enumerate(user["rutas"]):
             with cols[i % 3]:
                 r_img_data = get_image_base64(ruta["miniatura"])
-                r_src = r_img_data if r_img_data else "https://via.placeholder.com/300x200"
+                r_src = r_img_data if r_img_data else "https://via.placeholder.com/300x200?text=Sin+Imagen"
                 
-                # HTML con Hover e información de likes/comentarios/guardados
                 st.markdown(f'''
                     <div class="route-card">
                         <div class="img-container">
@@ -106,17 +145,12 @@ def render_profile(user_id):
                 
                 c1, c2 = st.columns([3, 1])
                 with c1:
-                    if st.button("Explorar", key=f"v_{ruta['id']}", use_container_width=True):
-                        # 1. Cargamos los datos de la ruta para el mapa
-                        st.session_state['ruta_activa_id'] = ruta['id']
-                        st.session_state['modo_mapa'] = 'ver'
-                        
-                        # 2. ¡EL SALTO MÁGICO! 
-                        # Cambiamos la página actual a la del mapa
-                        st.session_state['pagina_actual'] = "📍 Crear ruta"
-                        
-                        # 3. Forzamos la recarga inmediata
-                        st.rerun()
+                    # 🚀 AHORA GUARDAMOS EL DICCIONARIO DE LA RUTA EN VEZ DEL ID
+                    if st.button("👁️ Ver publicación", key=f"pub_{ruta['id']}", use_container_width=True):
+                        st.session_state['modo_perfil'] = 'publicacion'
+                        st.session_state['ruta_ver_publicacion'] = ruta
+                        st.rerun() 
+                            
                 with c2:
                     if st.button("🗑️", key=f"d_{ruta['id']}", use_container_width=True):
                         if profile_service.delete_route(ruta['id'], user_id):

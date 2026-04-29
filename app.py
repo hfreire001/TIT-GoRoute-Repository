@@ -8,7 +8,7 @@ from presentacion.vistas import chat_view
 st.set_page_config(page_title="Plan&Go", layout="wide", page_icon="📍")
 
 def main():
-    # 🚀 NUEVO: Añadimos Explorar (Buscador) y Chat a las opciones del menú
+    # Opciones del menú actualizadas con Explorar y Chat
     opciones_menu = ["🏠 Feed", "🔍 Explorar", "📍 Crear ruta", "💬 Chat", "👤 Perfil"]
 
     # 1. Inicialización de sesión
@@ -27,7 +27,7 @@ def main():
     if 'modo_mapa' not in st.session_state:
         st.session_state['modo_mapa'] = 'crear'
 
-    # 3. Lógica de Navegación Inicial
+    # 3. Lógica de Navegación Inicial (Login vs Registro)
     if st.session_state['usuario_logueado'] is None:
         if st.session_state['pantalla_actual'] == "Login":
             login_view.render() 
@@ -47,13 +47,31 @@ def main():
             st.divider()
             
             opcion = st.radio("Ir a:", opciones_menu, index=indice_actual)
-            st.session_state['pagina_actual'] = opcion
+            
+            # 🚀 AQUÍ SEPARAMOS ESTRICTAMENTE LOS MÓDULOS AL NAVEGAR
+            if opcion != st.session_state['pagina_actual']:
+                st.session_state['pagina_actual'] = opcion
+                
+                if opcion == "📍 Crear ruta":
+                    # Entrar a crear ruta SIEMPRE es desde 0
+                    st.session_state['modo_mapa'] = 'crear'
+                    st.session_state['ruta_activa_id'] = None
+                    st.session_state['editando_route_id'] = None
+                    st.session_state['puntos_ruta'] = []
+                    st.session_state['ruta_calculada'] = None
+                    st.session_state['contador_ubicaciones'] = 0
+                elif opcion == "👤 Perfil":
+                    # Entrar al perfil siempre cierra los mapas que estuvieras viendo
+                    st.session_state['modo_mapa'] = 'crear'
+                    st.session_state['ruta_activa_id'] = None
+                
+                st.rerun()
             
             st.divider()
             if st.button("Cerrar Sesión"):
                 st.session_state['usuario_logueado'] = None
                 st.session_state['pagina_actual'] = "🏠 Feed" 
-                st.session_state['pantalla_actual'] = "Login"
+                st.session_state['pantalla_actual'] = "Login" 
                 st.rerun()
                 
         # 4. Renderizado de la vista seleccionada
@@ -61,16 +79,13 @@ def main():
             home_view.render()
             
         elif st.session_state['pagina_actual'] == "🔍 Explorar":
-            # 🚀 NUEVO: Renderiza la vista de búsqueda
             search_view.render_search()
             
         elif st.session_state['pagina_actual'] == "📍 Crear ruta":
             map_view.render()
             
         elif st.session_state['pagina_actual'] == "💬 Chat":
-            # 🚀 NUEVO: Renderiza la vista del chat
-            # (Nota: Asumo que la función se llama render(). Si necesita el id_actual, cámbialo a render(id_actual))
-            chat_view.render_chat_view()
+            chat_view.render()
             
         elif st.session_state['pagina_actual'] == "👤 Perfil":
             id_actual = st.session_state['usuario_logueado']['id']
