@@ -89,14 +89,14 @@ def render_profile(user_id):
         if usuario_logueado:
             h_liked, h_fav = profile_service.obtener_estado_interacciones(ruta_p['id'], usuario_logueado['id'])
         
-        # Adaptador para que home_view entienda los datos
+        # En la parte if modo == 'publicacion':
         ruta_adaptada = {
             'id': ruta_p['id'],
             'username': usuario_logueado['username'] if usuario_logueado else "Usuario",
             'creator_id': user_id,
             'name': ruta_p.get('nombre'),
-            'description': "Descripción de la ruta", # Puedes traer esto del repo si quieres
-            'tags': [],
+            'description': ruta_p.get('description', 'Sin descripción'), # 🚀 Aquí leemos el real
+            'tags': ruta_p.get('tags', []),                              # 🚀 Aquí leemos las reales
             'imagen_bytes': get_image_base64(ruta_p.get('miniatura')),
             'num_likes': ruta_p.get('likes', 0),
             'user_has_liked': h_liked,

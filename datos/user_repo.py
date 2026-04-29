@@ -85,15 +85,17 @@ def get_social_counts(user_id):
             close(conn)
 
 def get_user_routes(user_id):
-    """Obtiene las rutas con contadores reales empaquetados en diccionarios."""
     cursor = connect()
     if not cursor: return []
     conexion = cursor.connection
     try:
+        # 🚀 AÑADIMOS r.description y r.tags a la búsqueda
         query = """
             SELECT 
                 r.id, 
                 r.name as nombre, 
+                r.description, 
+                r.tags,
                 r.thumbnail_url as miniatura,
                 (SELECT COUNT(*) FROM likes WHERE route_id = r.id) as likes,
                 (SELECT COUNT(*) FROM comments WHERE route_id = r.id) as comentarios,
