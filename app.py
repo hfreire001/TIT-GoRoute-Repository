@@ -61,7 +61,13 @@ def main():
                     st.session_state['ruta_calculada'] = None
                     st.session_state['contador_ubicaciones'] = 0
                 elif opcion == "👤 Perfil":
-                    # Entrar al perfil siempre cierra los mapas que estuvieras viendo
+                    # 1. Cierra los mapas que estuvieras viendo
+                    st.session_state['modo_mapa'] = 'crear'
+                    st.session_state['ruta_activa_id'] = None
+                    # 🚀 2. ESTO ES LO NUEVO: Fuerza al perfil a volver a la cuadrícula inicial
+                    st.session_state['modo_perfil'] = 'grid'
+                elif opcion == "🔍 Explorar":
+                    # Igual si usas el mismo sistema en buscar, te aseguras de limpiar
                     st.session_state['modo_mapa'] = 'crear'
                     st.session_state['ruta_activa_id'] = None
                 

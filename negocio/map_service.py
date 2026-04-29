@@ -1,5 +1,5 @@
 import requests
-
+from datos import route_repo
 #API KEY real de OpenRouteService
 ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImRhZGI4N2E1YWY0MjRhODQ4NjFkNjFkZmZjMWM2YmM2IiwiaCI6Im11cm11cjY0In0=" 
 
@@ -49,3 +49,37 @@ def obtener_nombre_lugar(lat, lon):
         return "Punto seleccionado"
     except:
         return "Punto seleccionado"
+
+def publicar_o_clonar_ruta(usuario_actual_id, route_id_original, username, nombre_ruta, descripcion, geometria_geojson, imagen_file, tags_seleccionados, waypoints):
+    
+    # 1. Le preguntamos a la Base de Datos quién es el dueño original
+    creador_original_id = None
+    if route_id_original is not None:
+        creador_original_id = route_repo.get_creador_ruta(route_id_original)
+        
+    # 2. Si no hay dueño (ruta desde cero) o NO soy el dueño -> CLONAR (Crear nueva)
+    if creador_original_id is None or usuario_actual_id != creador_original_id:
+        print("Clonando ruta: No soy el dueño original. Creando copia en mi perfil...")
+        return route_repo.guardar_ruta(
+            user_id=usuario_actual_id, 
+            username=username, 
+            nombre_ruta=nombre_ruta, 
+            descripcion=descripcion, 
+            geometria_geojson=geometria_geojson, 
+            imagen_file=imagen_file, 
+            tags_seleccionados=tags_seleccionados, 
+            waypoints=waypoints
+        )
+    else:
+        # 3. Si YO soy el dueño original de la ruta -> ACTUALIZAR (Sobreescribir)
+        print("Actualizando ruta: Soy el dueño de esta ruta. Sobreescribiendo...")
+        return route_repo.actualizar_ruta(
+            route_id=route_id_original, 
+            nombre_ruta=nombre_ruta, 
+            descripcion=descripcion, 
+            geometria_geojson=geometria_geojson, 
+            imagen_file=imagen_file, 
+            tags_seleccionados=tags_seleccionados, 
+            user_id=usuario_actual_id, 
+            waypoints=waypoints
+        )

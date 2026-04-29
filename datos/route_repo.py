@@ -97,3 +97,18 @@ def get_route_by_id(route_id):
         return cursor.fetchone()
     finally:
         cursor.close()
+
+def get_creador_ruta(route_id):
+    """Consulta rápida a la BD para saber el dueño real de una ruta."""
+    cursor = connect()
+    if not cursor: return None
+    try:
+        cursor.execute("SELECT creator_id FROM routes WHERE id = %s", (route_id,))
+        resultado = cursor.fetchone()
+        return resultado[0] if resultado else None
+    except Exception as e:
+        print(f"Error al obtener creador: {e}")
+        return None
+    finally:
+        cursor.close()
+        # NUNCA close(conexion) aquí por si hay más operaciones pendientes

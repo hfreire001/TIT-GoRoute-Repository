@@ -45,13 +45,6 @@ def get_full_profile(user_id):
 def obtener_estado_interacciones(route_id, user_id):
     return user_repo.obtener_estado_interacciones(route_id, user_id)
 
-import os
-import bcrypt
-from datos import user_repo
-
-import os
-from datos import user_repo
-
 def actualizar_perfil_completo(user_id, username, email, bio, password, imagen_file):
     # 1. Procesar contraseña: si tiene texto, la pasamos tal cual
     pw_final = None

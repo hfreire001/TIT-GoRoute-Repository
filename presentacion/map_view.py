@@ -276,12 +276,23 @@ def render_creador_normal(edit_mode=False):
         
         if st.button("Guardar" if not edit_mode else "Actualizar", type="primary"):
             uid = st.session_state['usuario_logueado']['id']
-            args = (uid, st.session_state['usuario_logueado']['username'], nombre_ruta, desc_ruta, st.session_state['ruta_calculada']['geometria'], imagen_ruta, tags_sel, st.session_state['puntos_ruta'])
+            username = st.session_state['usuario_logueado']['username']
             
-            if edit_mode:
-                exito = route_repo.actualizar_ruta(st.session_state['ruta_activa_id'], nombre_ruta, desc_ruta, st.session_state['ruta_calculada']['geometria'], imagen_ruta, tags_sel, uid, st.session_state['puntos_ruta'])
-            else:
-                exito = route_repo.guardar_ruta(*args)
+            # Llamamos directamente al Cerebro pasándole el ID de la ruta que estamos viendo
+            exito = map_service.publicar_o_clonar_ruta(
+                usuario_actual_id=uid,
+                route_id_original=st.session_state.get('ruta_activa_id'),
+                username=username,
+                nombre_ruta=nombre_ruta,
+                descripcion=desc_ruta,
+                geometria_geojson=st.session_state['ruta_calculada']['geometria'],
+                imagen_file=imagen_ruta,
+                tags_seleccionados=tags_sel,
+                waypoints=st.session_state['puntos_ruta']
+            )
             
-            if exito: st.success("¡Guardado!"); st.balloons()
-            else: st.error("Error al guardar.")
+            if exito: 
+                st.success("¡Ruta guardada y procesada correctamente en tu perfil!")
+                st.balloons()
+            else: 
+                st.error("Hubo un error al procesar la ruta.")

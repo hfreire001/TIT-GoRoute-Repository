@@ -99,6 +99,25 @@ def render_publication(ruta, usuario):
                     home_service.publicar_comentario(usuario['id'], ruta['id'], nuevo_comentario)
                     st.rerun()
 
+        # 7. Botón para ver ruta o modificar
+        st.divider()
+        col_ver, col_mod = st.columns(2)
+        
+        with col_ver:
+            if st.button("🗺️ Ver en Mapa", use_container_width=True, key=f"ver_map_{ruta['id']}"):
+                st.session_state['modo_mapa'] = 'ver'
+                st.session_state['ruta_activa_id'] = ruta['id']
+                st.session_state['pagina_actual'] = "📍 Crear ruta" # Viajamos al mapa
+                st.rerun()
+
+        with col_mod:
+            if st.button("🛠️ Modificar Ruta", use_container_width=True, key=f"mod_map_{ruta['id']}"):
+                # Aquí está el truco: le decimos que vamos a editar
+                st.session_state['modo_mapa'] = 'editar'
+                st.session_state['ruta_activa_id'] = ruta['id']
+                st.session_state['pagina_actual'] = "📍 Crear ruta"
+                st.rerun()
+
 def render():
     """
     Función principal de la vista Home.
