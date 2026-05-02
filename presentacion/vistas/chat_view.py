@@ -47,9 +47,8 @@ def renderizar_mensajes_en_vivo(current_user_id, otro_usuario_id, limite_mensaje
 # -----------------------------------------------------------------
 
 
-def render_chat_view():
+def render_chat_view(current_user_id):
     st.markdown("## 💬 Centro de Mensajes")
-    current_user_id = st.session_state.get('user_id', 1) 
     
     # Inicialización de variables de estado
     if 'chat_activo' not in st.session_state:

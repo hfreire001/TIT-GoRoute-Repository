@@ -7,12 +7,12 @@ def get_connection_pool():
     try:
         connection_pool = psycopg2.pool.ThreadedConnectionPool(
             1, 20,
-            host="127.0.0.1",
+            host="10.116.118.50",
             port="5432",
-            database="mi_base_gis",
-            user="mi_usuario",
+            database="Usuario", 
+            user="postgres",
             password="Admin123",
-          ##client_encoding="utf8"
+            client_encoding="utf8"
         )
         print("✅ Pool de conexiones a la base de datos inicializado.")
         return connection_pool

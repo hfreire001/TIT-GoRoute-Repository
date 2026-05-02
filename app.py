@@ -91,7 +91,8 @@ def main():
             map_view.render()
             
         elif st.session_state['pagina_actual'] == "💬 Chat":
-            chat_view.render()
+            id_actual = st.session_state['usuario_logueado']['id']
+            chat_view.render_chat_view(id_actual)
             
         elif st.session_state['pagina_actual'] == "👤 Perfil":
             id_actual = st.session_state['usuario_logueado']['id']
