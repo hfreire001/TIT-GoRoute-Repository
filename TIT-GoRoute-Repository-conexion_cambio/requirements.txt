@@ -1,0 +1,25 @@
+# ==========================================
+# Frontend y Mapas (Capa de Presentación)
+# ==========================================
+streamlit==1.32.0          # Framework principal para la interfaz web
+folium==0.15.1             # Creación de mapas interactivos basados en Leaflet
+streamlit-folium==0.19.0   # Puente para renderizar mapas de Folium dentro de Streamlit
+
+# ==========================================
+# Base de Datos (Capa de Datos)
+# ==========================================
+psycopg2-binary==2.9.9     # Driver de PostgreSQL para ejecutar consultas y operaciones PostGIS
+
+# ==========================================
+# Chat y Tiempo Real (Capa de Negocio)
+# ==========================================
+python-socketio==5.11.1    # Gestión de WebSockets para el chat en tiempo real
+pika==1.3.2                # Cliente para conectarse y gestionar las colas de RabbitMQ
+redis==5.0.3               # Cliente para almacenar estados temporales del chat en Redis
+
+# ==========================================
+# Seguridad y Utilidades
+# ==========================================
+bcrypt==4.1.2              # Hasheo de contraseñas de usuarios
+requests==2.31.0           # Para realizar peticiones HTTP a la API de OpenRouteService
+python-dotenv==1.0.1       # Para leer contraseñas y claves de API desde un archivo .env oculto
