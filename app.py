@@ -7,6 +7,49 @@ from presentacion.vistas import chat_view
 
 st.set_page_config(page_title="Plan&Go", layout="wide", page_icon="📍")
 
+# --- CAMBIOS DE ESTILIZADO: Inyección de CSS Global ---
+# Este bloque aplica el fondo azul profesional al sidebar y ajusta los colores de texto y botones para contraste.
+st.markdown(
+    """
+    <style>
+        /* Fondo del sidebar azul oscuro profesional */
+        [data-testid="stSidebar"] {
+            background-color: #a5c1e6;
+            color: white;
+        }
+
+        /* Color de texto para markdown en sidebar */
+        [data-testid="stSidebar"] .stMarkdown p {
+            color: white !important;
+        }
+
+        /* Color de texto para etiquetas de radio buttons */
+        [data-testid="stSidebar"] .stRadio label p {
+            color: white !important;
+        }
+        
+        /* Ajustar el divisor para que sea más visible sobre azul */
+        [data-testid="stSidebar"] hr {
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+
+        /* Estilizar el botón de Cerrar Sesión (blanco con texto azul) */
+        [data-testid="stSidebar"] .stButton button {
+            color: #003366 !important;
+            background-color: white !important;
+            border: 1px solid white !important;
+            width: 100%;
+        }
+        [data-testid="stSidebar"] .stButton button:hover {
+            background-color: #f0f2f6 !important;
+            color: #002244 !important;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+# --------------------------------------------------
+
 def main():
     # Opciones del menú actualizadas con Explorar y Chat
     opciones_menu = ["🏠 Feed", "🔍 Explorar", "📍 Crear ruta", "💬 Chat", "👤 Perfil"]
@@ -41,6 +84,17 @@ def main():
 
         # Menú Lateral para el usuario logueado
         with st.sidebar:
+            # --- CAMBIOS DE ESTILIZADO: Logo de la app arriba ---
+            # Asegúrate de que tu logo esté guardado en 'assets/logo.png' (o cambia la ruta aquí)
+            try:
+                # Usamos use_container_width para que se adapte al ancho del sidebar
+                st.image("assets/logo2.png", use_container_width=True)
+            except FileNotFoundError:
+                st.warning("⚠️ No se encontró el logo en 'assets/logo.png'. Por favor, verifica la ruta o coloca la imagen.")
+            
+            st.divider()
+            # ----------------------------------------------------
+
             usuario = st.session_state['usuario_logueado']
             nombre = usuario.get('username', usuario.get('nombre', 'Usuario'))
             st.write(f"Hola, **{nombre}**")
