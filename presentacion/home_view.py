@@ -296,7 +296,7 @@ def render():
     # 1. Inyectamos los estilos personalizados (una sola vez)
     inject_custom_css()
 
-    st.title("📱 Mi Feed")
+    st.title("Mi Feed")
     # Texto secundario bajo el título en Gris-Azulado
     st.markdown("<p style='color: var(--text-subtitle); margin-top: -15px; margin-bottom: 25px;'>Las últimas rutas de la comunidad que sigues.</p>", unsafe_allow_html=True)
 

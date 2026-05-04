@@ -1,5 +1,5 @@
 import streamlit as st
-from negocio import profile_service
+from negocio import home_service, profile_service
 from presentacion import home_view
 import base64
 import os
@@ -82,34 +82,44 @@ def render_profile(user_id):
         </style>
     """, unsafe_allow_html=True)
 
-    # 2. MODO PUBLICACIÓN INDIVIDUAL
+    # --- 1. INYECTAR CSS DEL FEED ---
+    # Esto asegura que al ver la publicación individual, se vea idéntica al Home
+    home_view.inject_custom_css()
+
+    # --- 2. MODO PUBLICACIÓN INDIVIDUAL (VISTA TIPO FEED) ---
     if modo == 'publicacion' and 'ruta_ver_publicacion' in st.session_state:
         ruta_p = st.session_state['ruta_ver_publicacion']
         
-        if st.button("⬅️ Volver al Perfil"):
+        # --- SOLUCIÓN PARA ACTUALIZAR LIKES ---
+        # 1. Obtenemos la lista REAL de nombres que han dado like ahora mismo
+        nombres_likes = home_service.obtener_nombres_likes(ruta_p['id'])
+        
+        # 2. El número de likes REAL es el tamaño de esa lista
+        conteo_real = len(nombres_likes)
+        
+        # Botón de retorno estilizado
+        if st.button("⬅️ Volver al Perfil", key="back_to_profile"):
             st.session_state['modo_perfil'] = 'grid'
             st.rerun()
 
-        st.divider()
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        h_liked, h_fav = False, False
-        if usuario_logueado:
-            h_liked, h_fav = profile_service.obtener_estado_interacciones(ruta_p['id'], usuario_logueado['id'])
-        
-        ruta_adaptada = {
+        # Mapeo de campos para que coincidan con lo que espera home_view.render_publication
+        # Aseguramos que los nombres de las llaves sean los correctos
+        ruta_para_renderizar = {
             'id': ruta_p['id'],
             'username': usuario_logueado['username'] if usuario_logueado else "Usuario",
             'creator_id': user_id,
-            'name': ruta_p.get('nombre'),
-            'description': ruta_p.get('description', 'Sin descripción'),
+            'nombre': ruta_p.get('nombre'),
+            'description': ruta_p.get('description') or ruta_p.get('descripcion', 'Sin descripción'),
             'tags': ruta_p.get('tags', []), 
             'imagen_bytes': get_image_base64(ruta_p.get('miniatura')),
-            'num_likes': ruta_p.get('likes', 0),
-            'user_has_liked': h_liked,
-            'user_has_favorited': h_fav
+            'num_likes': conteo_real,
+            'fecha_bonita': ruta_p.get('fecha', 'Reciente')
         }
         
-        home_view.render_publication(ruta_adaptada, usuario_logueado)
+        # LLAMADA A LA FUNCIÓN QUE YA TIENES EN HOME_VIEW
+        home_view.render_publication(ruta_para_renderizar, usuario_logueado)
         return
 
     # 3. MODO CUADRÍCULA (Perfil Principal)

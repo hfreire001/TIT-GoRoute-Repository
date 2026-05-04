@@ -6,25 +6,101 @@ def render():
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
-            /* ── Fondo general ── */
+           /* ── Fondo general ── */
             .stApp {
                 background: linear-gradient(135deg, #e8f0fb 0%, #f0f4ff 50%, #e4edf9 100%);
                 min-height: 100vh;
             }
+            
+            /* ── ELIMINAR EL RECTÁNGULO FANTASMA (NUEVO) ── */
+            [data-testid="stVerticalBlockBorderWrapper"] {
+                border: none !important;
+                box-shadow: none !important;
+                background-color: transparent !important;
+            }
+            
+            /* ── AJUSTE DE POSICIÓN INICIAL ── */
+            .block-container {
+                /* Eliminamos el espacio superior para que el contenido suba */
+                padding-top: 0rem !important; 
+                padding-bottom: 0rem !important;
+                margin-top: -2rem !important; /* Forzamos un poco más hacia arriba si hace falta */
+            }
 
-            /* ── Ocultar decoración por defecto de Streamlit ── */
+            .stMain {
+                margin-top: -3rem !important;
+            }
+
+            /* ── Tarjeta de Login (Ajuste de margen) ── */
+            .login-card {
+                background: #EBF3FB;
+                border-radius: 24px;
+                box-shadow: 0 12px 40px rgba(0, 51, 102, 0.12) !important;
+                padding: 2rem;
+                /* Añadimos un margen superior a la tarjeta para controlar 
+                   exactamente dónde empieza respecto al borde del navegador */
+                margin-top: 2rem; 
+                border: 1px solid rgba(0, 51, 102, 0.05);
+            }
+            
+           /* Contenedor raíz: aquí es donde queremos el borde único */
+            div[data-testid="stTextInputRootElement"] {
+                border: 1.5px solid #d0dcee !important;
+                border-radius: 10px !important;
+                background: #f8faff !important;
+                transition: all 0.2s ease !important;
+                padding: 2px !important; /* Espaciado interno para que no pegue el borde */
+            }
+
+            /* Foco: iluminamos el contenedor raíz, NO lo de adentro */
+            div[data-testid="stTextInputRootElement"]:has(input:focus) {
+                border-color: #003366 !important;
+                box-shadow: 0 0 0 2px rgba(0, 51, 102, 0.1) !important;
+                background: #ffffff !important;
+            }
+
+            /* ELIMINAR EL RECUADRO CORTO: 
+               Forzamos a que cualquier div intermedio no tenga borde ni sombra */
+            div[data-testid="stTextInputRootElement"] > div {
+                border: none !important;
+                box-shadow: none !important;
+                outline: none !important;
+                background: transparent !important;
+            }
+
+            /* El input propiamente dicho */
+            input[data-testid="stTextInputBase"] {
+                border: none !important;
+                box-shadow: none !important;
+                outline: none !important;
+                background: transparent !important;
+                font-family: 'Plus Jakarta Sans', sans-serif !important;
+                color: #1a2d4a !important;
+            }
+
+            
+
+            /* ── Barra superior blanca → hacerla transparente ── */
             header[data-testid="stHeader"] {
                 background: transparent !important;
-                height: 0 !important;
-                min-height: 0 !important;
-                padding: 0 !important;
-                visibility: hidden !important;
+                background-color: transparent !important;
+                display: block !important;   /* no display:none para que no deje hueco */
             }
-            #MainMenu { visibility: hidden !important; }
-            footer { visibility: hidden !important; }
-            .stDeployButton { display: none !important; }
+
+                      
+            
+            /* ── Toolbar (Deploy + menú) ── */
+            [data-testid="stToolbar"] {
+                background: transparent !important;
+            }
+            
+            header[data-testid="stHeader"] { 
+                display: none !important; 
+            }
+            
+            
             .block-container {
-                padding-top: 3rem !important;
+                padding-top: 2rem !important;
                 padding-bottom: 3rem !important;
             }
 
@@ -189,9 +265,18 @@ def render():
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
 
         # Logo centrado y con tamaño controlado
-        _l, _m, _r = st.columns([1.5, 1, 1.5])
-        with _m:
-            st.image("assets/logo.png", use_container_width=True)
+       # PONER ESTO:
+        import base64
+
+        with open("assets/logo.png", "rb") as f:
+            logo_b64 = base64.b64encode(f.read()).decode()
+
+        st.markdown(f"""
+            <div style="text-align:center; margin-bottom: 0.75rem;">
+                <img src="data:image/png;base64,{logo_b64}" 
+                    style="width:110px; height:auto;" />
+            </div>
+        """, unsafe_allow_html=True)
 
         # Cabecera
         st.markdown("""
