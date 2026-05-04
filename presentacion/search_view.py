@@ -18,61 +18,98 @@ def render_search():
         st.warning("Debes iniciar sesión para explorar rutas.")
         return 
     
+    # --- PALETA DE COLORES (ADN Plan&Go) ---
+    AZUL_P = "#003366"  # Profundo
+    AZUL_S = "#5a7ab0"  # Suave
+    AZUL_F = "#EBF3FB"  # Fondo
+    AZUL_B = "#D0DCEE"  # Bordes
+
+    # --- 1. ESTILOS CSS UNIFICADOS (Activa el Hover y Sombras) ---
+    st.markdown(f"""
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+
+        .stApp {{ background-color: #FFFFFF; }}
+
+        /* Títulos y textos */
+        h1, h2, h3, p, span, label, .stMarkdown, .stCaption {{
+            color: {AZUL_P} !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }}
+
+        /* Contenedor Principal de la Card (Igual al Perfil) */
+        .main-card-container {{
+            background-color: {AZUL_F};
+            border-radius: 18px;
+            padding: 10px;
+            border: 1px solid {AZUL_B};
+            text-align: center;
+            margin-bottom: 15px;
+            transition: transform 0.2s ease;
+        }}
+        .main-card-container:hover {{ transform: translateY(-3px); }}
+
+        /* Wrapper de Imagen y Overlay (Sombreado al pasar el ratón) */
+        .img-wrapper {{
+            position: relative;
+            width: 100%;
+            height: 160px;
+            border-radius: 12px;
+            overflow: hidden;
+        }}
+        .route-img-fixed {{
+            width: 100%; height: 100%; object-fit: cover;
+        }}
+
+        /* Overlay que contiene Likes, Comentarios, etc. */
+        .overlay {{
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 51, 102, 0.85); 
+            color: white;
+            display: flex; justify-content: center; align-items: center;
+            gap: 15px; opacity: 0; transition: 0.3s ease;
+        }}
+        .img-wrapper:hover .overlay {{ opacity: 1; }}
+        
+        .stat-item {{ 
+            display: flex; flex-direction: column; align-items: center; 
+            font-size: 0.80rem; font-weight: 600; 
+        }}
+        .stat-item span {{ color: white !important; }}
+
+        .route-title-style {{
+            font-weight: 700; color: {AZUL_P}; 
+            margin-top: 10px; font-size: 0.80rem; line-height: 1.1;
+        }}
+
+        /* Inputs y Selectores */
+        div[data-baseweb="select"], .stTextInput > div > div > input {{
+            background-color: white !important;
+            border: 2px solid {AZUL_P} !important;
+            border-radius: 10px !important;
+            
+        
+        }}
+        </style>
+    """, unsafe_allow_html=True)
     
-    
-    # --- 1. LÓGICA DE NAVEGACIÓN (JERARQUÍA PRIORITARIA) ---
-    
-    # PRIORIDAD 1: Si hay un perfil ajeno seleccionado, lo mostramos (venga de donde venga)
+    # --- 2. LÓGICA DE NAVEGACIÓN ---
     if st.session_state.get('perfil_a_ver'):
         render_perfil_ajeno(st.session_state['perfil_a_ver'])
         return
 
-    # PRIORIDAD 2: Si el usuario seleccionó una ruta para ver detalle
     if st.session_state.get('ver_ruta_detalle'):
         if st.button("⬅️ Volver al buscador"):
             st.session_state.ver_ruta_detalle = None
             st.rerun()
         
         ruta_completa = home_service.obtener_ruta_por_id(st.session_state.ver_ruta_detalle, usuario['id'])
-        
         if ruta_completa:
             from presentacion.home_view import render_publication
-            # Aquí render_publication ya tiene el botón para ir al perfil que configuramos antes
             render_publication(ruta_completa, usuario)
-        else:
-            st.error("No se pudo cargar la información de la ruta.")
         return
 
-    # --- 2. ESTILOS CSS ---
-    st.markdown("""
-        <style>
-        .container-ruta {
-            position: relative;
-            cursor: pointer;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 10px;
-        }
-        .overlay-stats {
-            position: absolute;
-            top: 0; bottom: 0; left: 0; right: 0;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            font-size: 1.1em;
-            gap: 10px;
-        }
-        .container-ruta:hover .overlay-stats {
-            opacity: 1;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-    # --- 3. INTERFAZ DEL BUSCADOR (ESTADO NORMAL) ---
+    # --- 3. INTERFAZ ---
     st.title("Explorar 🔍")
     tab_rutas, tab_usuarios = st.tabs(["📍 Buscar Rutas", "👤 Buscar Usuarios"])
 
@@ -81,175 +118,193 @@ def render_search():
 
     with tab_usuarios:
         render_seccion_usuarios()
-    
-    
-def render_seccion_usuarios():
-    st.subheader("Encuentra a otros usuarios")
-    
-    # El buscador
-    query_user = st.text_input(
-        "Buscar por nombre de usuario:", 
-        placeholder="Escribe un nombre...",
-        key="input_busqueda_usuarios"
-    )
 
-    if query_user:
-        # Llamada al servicio
-        usuarios = search_service.buscar_usuarios(query_user)
-        
-        if usuarios:
-            st.write(f"Resultados para '{query_user}':")
-            for u in usuarios:
-                # Contenedor para cada usuario
-                with st.container():
-                    col_img, col_txt, col_btn = st.columns([1, 3, 1.5])
-                    
-                    with col_img:
-                        # Gestión de imagen
-                        img_data = get_image_base64(u.get("foto"))
-                        src = f"data:image/png;base64,{img_data}" if img_data else "https://www.w3schools.com/howto/img_avatar.png"
-                        st.markdown(
-                            f'<img src="{src}" style="width:60px; height:60px; border-radius:50%; object-fit:cover; border: 2px solid #4CAF50;">', 
-                            unsafe_allow_html=True
-                        )
-                    
-                    with col_txt:
-                        # Mostramos el nombre asegurándonos de que no sea None
-                        nombre = u.get('username', 'Usuario desconocido')
-                        st.markdown(f"**@{nombre}**")
-                        
-                        bio = u.get('bio') or "Sin biografía"
-                        st.caption(f"{bio[:50]}..." if len(bio) > 50 else bio)
-                    
-                    with col_btn:
-                        # Botón que conecta con tu lógica de navegación de render_search
-                        if st.button("Ver Perfil", key=f"btn_u_{u['id']}", use_container_width=True):
-                            st.session_state['perfil_a_ver'] = u['id']
-                            st.rerun()
-                    st.divider()
-        else:
-            st.warning(f"No se han encontrado resultados para '{query_user}'.")
-    else:
-        st.info("Escribe el nombre de un usuario para ver su actividad.")
-        
-    
 def render_seccion_rutas():
     tags_totales = load_tags()
-
     if "mis_tags_seleccionados" not in st.session_state:
         st.session_state.mis_tags_seleccionados = []
 
-    # --- Lógica de Multiselect ---
-    opciones_visibles = tags_totales
-    if len(st.session_state.mis_tags_seleccionados) >= 5:
-        opciones_visibles = st.session_state.mis_tags_seleccionados
-        st.info("📍 Has alcanzado el límite de 5 etiquetas.")
-
-    seleccion = st.multiselect(
-        "Busca por etiquetas (Máximo 5):",
-        options=tags_totales,
-        default=st.session_state.mis_tags_seleccionados,
-        max_selections=5
-    )
+    st.subheader("Filtrar por categoría")
+    seleccion = st.multiselect("Etiquetas:", options=tags_totales, default=st.session_state.mis_tags_seleccionados)
 
     if seleccion != st.session_state.mis_tags_seleccionados:
         st.session_state.mis_tags_seleccionados = seleccion
         st.rerun()
 
-    st.divider()
-
-    # Obtención de datos desde el servicio
     estado, rutas = search_service.get_explore_logic(st.session_state.mis_tags_seleccionados)
 
-    if st.session_state.mis_tags_seleccionados:
-        if estado == "no_exacto_pero_sugerencias":
-            st.warning("⚠️ No hay rutas con todas esas etiquetas. Sugerencias:")
-        elif estado == "nada":
-            st.error("❌ Sin resultados. Tendencias actuales:")
-    else:
-        st.subheader("🔥 Tendencias")
-
-    # --- GRID DE RESULTADOS CORREGIDO ---
     if rutas:
         for i in range(0, len(rutas), 3):
             cols = st.columns(3)
             batch = rutas[i:i+3]
             for index, r in enumerate(batch):
                 with cols[index]:
-                    # 1. VALIDACIÓN DE IMAGEN (El punto crítico)
-                    # Asegúrate de que en tu SQL el campo se llame 'miniatura' o cámbialo aquí
                     img_raw = r.get("miniatura") 
-                    img_base64 = get_image_base64(img_raw) if img_raw else None
-                    
-                    if img_base64:
-                        img_src = f"data:image/png;base64,{img_base64}"
-                    else:
-                        # Imagen de respaldo para que no aparezca el icono de error
-                        img_src = "https://via.placeholder.com/400x400.png?text=Ruta+sin+Imagen"
+                    img_src = get_image_base64(img_raw) if img_raw else "https://via.placeholder.com/300x200"
 
-                    # 2. RENDERIZADO HTML
-                    st.markdown(f"""
-                        <div class="container-ruta">
-                            <img src="{img_src}" style="width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:10px;">
-                            <div class="overlay-stats">
-                                ❤️ {r.get('likes', 0)}  💬 {r.get('comentarios', 0)}  ⭐ {r.get('guardados', 0)}
+                    # HTML unificado con profile_view para activar el Hover
+                    st.markdown(f'''
+                        <div class="main-card-container">
+                            <div class="img-wrapper">
+                                <img src="{img_src}" class="route-img-fixed">
+                                <div class="overlay">
+                                    <div class="stat-item"><span>❤️</span><span>{r.get('likes', 0)}</span></div>
+                                    <div class="stat-item"><span>💬</span><span>{r.get('comentarios', 0)}</span></div>
+                                    <div class="stat-item"><span>⭐</span><span>{r.get('guardados', 0)}</span></div>
+                                </div>
                             </div>
+                            <div class="route-title-style">{r["nombre"]}</div>
                         </div>
+                    ''', unsafe_allow_html=True)
+                    
+                    # Botones de acción
+                    # 2. Botones de acción (Ajustamos proporciones a 2:1 para dar más espacio al nombre)
+                    # 2. Botones de acción (Proporción optimizada para nombres largos)
+                    st.markdown("""
+                        <style>
+                            /* Selecciona los párrafos (p) dentro de CUALQUIER botón en CUALQUIER columna */
+                            div[data-testid="stColumn"] button p {
+                                font-size: 0.8rem !important;
+                                white-space: nowrap;
+                            }
+                        </style>
                     """, unsafe_allow_html=True)
-                    
-                    # 3. INFORMACIÓN Y BOTONES
-                    st.markdown(f"**{r['nombre']}**")
-                    
-                    # Botón de perfil del creador
-                    if st.button(f"👤 @{r.get('username', 'usuario')}", key=f"user_grid_{r['id']}_{i}_{index}"):
-                        st.session_state['perfil_a_ver'] = r.get('creator_id')
-                        st.rerun()
-                    
-                    # Botón de detalle
-                    if st.button("Ver publicación", key=f"btn_det_{r['id']}_{i}_{index}", use_container_width=True):
-                        st.session_state.ver_ruta_detalle = r['id']
-                        st.rerun()
-    else:
-        st.info("No hay rutas disponibles.")
 
+                    # 2. Tu grid de rutas
+                    c1, c2 = st.columns([2.2, 0.8]) 
+
+                    with c1:
+                        nombre_usuario = r.get('username', 'usuario')
+                        if st.button(f"👤@{nombre_usuario}", key=f"u_{r['id']}_{i}_{index}", use_container_width=True):
+                            st.session_state['perfil_a_ver'] = r.get('creator_id')
+                            st.rerun()
+
+                    with c2:
+                        if st.button("Ver", key=f"btn_v_{r['id']}_{i}_{index}", use_container_width=True):
+                            st.session_state.ver_ruta_detalle = r['id']
+                            st.rerun()
+                            
+    else:
+        st.info("No hay rutas que coincidan con la búsqueda.")
+
+def render_seccion_usuarios():
+    query_user = st.text_input("Buscar por nombre:", placeholder="Escribe un nombre...", key="input_busqueda_usuarios")
+
+    if query_user:
+        usuarios = search_service.buscar_usuarios(query_user)
+        if usuarios:
+            for u in usuarios:
+                with st.container():
+                    col_img, col_txt, col_btn = st.columns([0.6, 3, 1.2])
+                    img_data = get_image_base64(u.get("foto"))
+                    src = f"data:image/png;base64,{img_data}" if img_data else "https://www.w3schools.com/howto/img_avatar.png"
+                    
+                    with col_img:
+                        st.markdown(f'<img src="{src}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border: 2px solid #003366;">', unsafe_allow_html=True)
+                    with col_txt:
+                        st.markdown(f"<b>@{u.get('username')}</b><br><small>{u.get('bio')[:40] if u.get('bio') else ''}...</small>", unsafe_allow_html=True)
+                    with col_btn:
+                        if st.button("Perfil", key=f"btn_u_search_{u['id']}", use_container_width=True):
+                            st.session_state['perfil_a_ver'] = u['id']
+                            st.rerun()
+                st.markdown("---")
+
+                
+                
 def render_perfil_ajeno(user_id):
     """
-    Renderiza el perfil ajeno.
+    Renderiza el perfil ajeno con UI circular y botones estilizados.
     """
-    st.markdown("""
+    # --- PALETA DE COLORES ---
+    AZUL_P = "#003366"  # Profundo
+    AZUL_S = "#5a7ab0"  # Suave
+    AZUL_F = "#EBF3FB"  # Fondo
+    AZUL_B = "#D0DCEE"  # Bordes
+
+    # 1. ESTILOS CSS CONSOLIDADOS (Avatar Circular + Botones + Cards)
+    st.markdown(f"""
         <style>
-            .avatar-container { display: flex; justify-content: center; margin-bottom: 20px; }
-            .avatar-circle {
-                width: 160px !important; height: 160px !important;
-                border-radius: 50% !important; object-fit: cover !important;
-                border: 4px solid #4CAF50; box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
-            }
-            .route-card {
-                background-color: #ffffff; border-radius: 15px;
-                padding: 10px; text-align: center; margin-bottom: 15px;
-                box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
-            }
-            .img-container {
-                position: relative; width: 100%; height: 180px;
-                border-radius: 10px; overflow: hidden;
-            }
-            .route-img-fixed {
-                width: 100% !important; height: 100% !important;
-                object-fit: cover !important; transition: 0.3s ease;
-            }
-            .overlay {
+            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+            
+            /* --- AVATAR CIRCULAR REFORZADO --- */
+            .avatar-container {{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-bottom: 20px;
+            }}
+            .avatar-circle {{
+                width: 150px !important;
+                height: 150px !important;
+                border-radius: 50% !important;
+                object-fit: cover !important;
+                border: 4px solid {AZUL_F};
+                box-shadow: 0 4px 14px rgba(0, 51, 102, 0.15);
+            }}
+
+            /* --- BOTONES DE SEGUIMIENTO --- */
+            /* Botón Seguir (Primary) */
+            div.stButton > button[kind="primary"] {{
+                background-color: {AZUL_P} !important;
+                color: #FFFFFF !important;
+                border: none !important;
+                font-weight: 700 !important;
+                padding: 0.5rem 1rem !important;
+            }}
+            div.stButton > button[kind="primary"] p {{
+                color: white !important;
+                font-size: 1rem !important;
+            }}
+
+            /* Botón Dejar de seguir (Secondary) */
+            div.stButton > button[kind="secondary"] {{
+                background-color: transparent !important;
+                color: {AZUL_P} !important;
+                border: 2px solid {AZUL_P} !important;
+                font-weight: 600 !important;
+            }}
+            div.stButton > button[kind="secondary"] p {{
+                color: {AZUL_P} !important;
+            }}
+
+            /* --- TARJETAS DE RUTAS (Main Card) --- */
+            .main-card-container {{
+                background-color: {AZUL_F};
+                border-radius: 18px;
+                padding: 10px;
+                border: 1px solid {AZUL_B};
+                text-align: center;
+                margin-bottom: 15px;
+                transition: transform 0.2s ease;
+            }}
+            .main-card-container:hover {{ transform: translateY(-3px); }}
+
+            .img-wrapper {{
+                position: relative;
+                width: 100%;
+                height: 140px;
+                border-radius: 12px;
+                overflow: hidden;
+            }}
+            .route-img-fixed {{
+                width: 100%; height: 100%; object-fit: cover;
+            }}
+            .overlay {{
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0, 0, 0, 0.6); color: white;
+                background: rgba(0, 51, 102, 0.85); color: white;
                 display: flex; justify-content: center; align-items: center;
                 gap: 15px; opacity: 0; transition: 0.3s ease;
-            }
-            .img-container:hover .overlay { opacity: 1; }
-            .img-container:hover .route-img-fixed { transform: scale(1.05); }
-            .route-title {
-                font-weight: bold; font-size: 1.1em;
-                color: #000000 !important; margin: 10px 0;
-            }
-            .stat-item { display: flex; flex-direction: column; align-items: center; font-size: 0.9em; }
+            }}
+            .img-wrapper:hover .overlay {{ opacity: 1; }}
+            
+            .stat-item {{ display: flex; flex-direction: column; align-items: center; font-size: 0.8rem; font-weight: 600; }}
+            .stat-item span {{ color: white !important; }}
+
+            .route-title-style {{
+                font-family: 'Plus Jakarta Sans', sans-serif; 
+                font-weight: 700; color: {AZUL_P}; 
+                margin-top: 10px; font-size: 0.85rem; line-height: 1.1;
+            }}
         </style>
     """, unsafe_allow_html=True)
 
@@ -262,6 +317,7 @@ def render_perfil_ajeno(user_id):
         st.session_state['perfil_a_ver'] = None
         st.rerun()
 
+    # Cabecera del Perfil
     col_foto, col_info = st.columns([1, 2.5])
     with col_foto:
         img_data = get_image_base64(user["foto"])
@@ -269,61 +325,55 @@ def render_perfil_ajeno(user_id):
         st.markdown(f'<div class="avatar-container"><img src="{avatar_src}" class="avatar-circle"></div>', unsafe_allow_html=True)
 
     with col_info:
-        st.title(user["username"])
+        st.markdown(f"<h1 style='color:{AZUL_P}; margin-bottom:5px;'>{user['username']}</h1>", unsafe_allow_html=True)
         m1, m2, m3 = st.columns(3)
         m1.metric("Seguidores", user.get("seguidores", 0))
         m2.metric("Seguidos", user.get("seguidos", 0))
         m3.metric("Rutas", len(user.get("rutas", [])))
-        st.write(f"**Bio:** {user.get('bio', 'Sin biografía.')}")
+        st.markdown(f"<p style='color:{AZUL_P};'><b>Bio:</b> {user.get('bio', 'Sin biografía.')}</p>", unsafe_allow_html=True)
 
-        # --- BOTÓN DE SEGUIR (NUEVO) ---
+        # --- GESTIÓN DE SEGUIMIENTO ---
         usuario_logueado = st.session_state.get('usuario_logueado')
-        
-        # Evitamos que alguien se pueda seguir a sí mismo por accidente
         if usuario_logueado and usuario_logueado['id'] != user_id:
-            # 1. Comprobamos el estado real en la base de datos
             ya_le_sigue = profile_service.verificar_seguimiento(usuario_logueado['id'], user_id)
             
-            # 2. El botón cambia visualmente si ya le sigues
-            texto_btn = "Dejar de seguir" if ya_le_sigue else "➕ Seguir"
-            tipo_btn = "secondary" if ya_le_sigue else "primary"
-            
-            # 3. La acción
-            if st.button(texto_btn, type=tipo_btn, use_container_width=True):
-                profile_service.gestionar_seguimiento(usuario_logueado['id'], user_id, ya_le_sigue)
-                st.rerun() # Recargamos para que el botón cambie y se sume/reste 1 a la métrica de arriba
-        # ------------------------------
+            if not ya_le_sigue:
+                if st.button("➕ Seguir", type="primary", use_container_width=True):
+                    profile_service.gestionar_seguimiento(usuario_logueado['id'], user_id, False)
+                    st.rerun()
+            else:
+                if st.button("Dejar de seguir", type="secondary", use_container_width=True):
+                    profile_service.gestionar_seguimiento(usuario_logueado['id'], user_id, True)
+                    st.rerun()
 
     st.divider()
-    st.subheader(f"📍 Rutas de @{user['username']}")
+    st.markdown(f"<h3 style='color:{AZUL_P};'>📍 Rutas de @{user['username']}</h3>", unsafe_allow_html=True)
     
     if not user.get("rutas"):
         st.info("Este usuario aún no ha publicado rutas.")
     else:
-        cols = st.columns(3)
+        # Rejilla de rutas del usuario ajeno
+        cols_rutas = st.columns(3)
         for i, ruta in enumerate(user["rutas"]):
-            with cols[i % 3]:
+            with cols_rutas[i % 3]:
                 r_img_data = get_image_base64(ruta["miniatura"])
                 r_src = f"data:image/png;base64,{r_img_data}" if r_img_data else "https://via.placeholder.com/300x200"
                 
                 st.markdown(f'''
-                    <div class="route-card">
-                        <div class="img-container">
+                    <div class="main-card-container">
+                        <div class="img-wrapper">
                             <img src="{r_src}" class="route-img-fixed">
                             <div class="overlay">
                                 <div class="stat-item"><span>❤️</span><span>{ruta.get('likes', 0)}</span></div>
                                 <div class="stat-item"><span>💬</span><span>{ruta.get('comentarios', 0)}</span></div>
-                                <div class="stat-item"><span>🔖</span><span>{ruta.get('guardados', 0)}</span></div>
+                                <div class="stat-item"><span>⭐</span><span>{ruta.get('guardados', 0)}</span></div>
                             </div>
                         </div>
-                        <div class="route-title">{ruta["nombre"]}</div>
+                        <div class="route-title-style">{ruta["nombre"]}</div>
                     </div>
                 ''', unsafe_allow_html=True)
                 
                 if st.button("Ver publicación", key=f"v_ajeno_pub_{ruta['id']}", use_container_width=True):
-                    # 1. Indicamos qué ruta queremos ver en detalle
                     st.session_state['ver_ruta_detalle'] = ruta['id']
-                    # 2. Reseteamos 'perfil_a_ver' para que la jerarquía de render_search() 
-                    # detecte que ahora queremos ver el detalle y no el perfil.
                     st.session_state['perfil_a_ver'] = None
                     st.rerun()

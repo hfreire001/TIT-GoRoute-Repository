@@ -3,6 +3,7 @@ from negocio import auth_service
 
 def render():
     st.markdown("""
+        
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
@@ -12,21 +13,35 @@ def render():
                 min-height: 100vh;
             }
 
-            /* ── Ocultar decoración por defecto de Streamlit ── */
-            header[data-testid="stHeader"] {
-                background: transparent !important;
-                height: 0 !important;
-                min-height: 0 !important;
-                padding: 0 !important;
-                visibility: hidden !important;
+            /* ── ELIMINAR RECUADROS BLANCOS Y FANTASMAS (SOLUCIÓN) ── */
+            [data-testid="stVerticalBlockBorderWrapper"], 
+            [data-testid="stVerticalBlock"],
+            div[data-testid="column"] > div {
+                border: none !important;
+                box-shadow: none !important;
+                background-color: transparent !important;
             }
-            #MainMenu { visibility: hidden !important; }
-            footer { visibility: hidden !important; }
-            .stDeployButton { display: none !important; }
-
+            
+            /* ── AJUSTE DE POSICIÓN ── */
             .block-container {
-                padding-top: 3rem !important;
-                padding-bottom: 3rem !important;
+                padding-top: 1rem !important; 
+                padding-bottom: 2rem !important;
+            }
+
+            header[data-testid="stHeader"] { display: none !important; }
+
+            .stMain { margin-top: -2rem !important; }
+
+            /* ── Tarjeta de Login (Ajuste de margen) ── */
+            .login-card {
+                background: #EBF3FB;
+                border-radius: 24px;
+                box-shadow: 0 12px 40px rgba(0, 51, 102, 0.12) !important;
+                padding: 2rem;
+                /* Añadimos un margen superior a la tarjeta para controlar 
+                   exactamente dónde empieza respecto al borde del navegador */
+                margin-top: 2rem; 
+                border: 1px solid rgba(0, 51, 102, 0.05);
             }
 
             /* ── Fuente global ── */
@@ -105,6 +120,12 @@ def render():
             input::placeholder {
                 color: #a0b3cc !important;
                 font-size: 0.9rem !important;
+            }
+            
+            /* Quitamos bordes internos que cortan el ojo */
+            div[data-testid="stTextInputRootElement"] > div {
+                border: none !important;
+                box-shadow: none !important;
             }
 
             /* ── Botón primario (Registrarse) ── */

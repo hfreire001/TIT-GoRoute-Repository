@@ -3,20 +3,19 @@ import os
 from datos import search_repo
 from datos import user_repo # Importamos el user_repo para buscar usuarios
 
+import streamlit as st
+
+# En vez de devolver la ruta para el HTML, úsala directamente en Streamlit
 def buscar_foto_real(creator_id, route_id):
-    """
-    Busca la miniatura siguiendo la estructura: imagenes/{creator_id}/rutas/{route_id}.ext
-    """
-    base_folder = "imagenes" 
+    # Usa el directorio de trabajo actual (donde ejecutas streamlit run)
+    base_folder = os.path.join(os.getcwd(), "imagenes")
     
     for ext in ['jpg', 'png', 'jpeg', 'webp']:
-        relative_path = os.path.join(base_folder, str(creator_id), "rutas", f"{route_id}.{ext}")
-        
-        if os.path.exists(relative_path):
-            return relative_path
+        ruta = os.path.join(base_folder, str(creator_id), "rutas", f"{route_id}.{ext}")
+        if os.path.exists(ruta):
+            return ruta  # ruta absoluta de disco, get_image_base64 la puede leer
             
     return None
-
 def get_explore_logic(seleccionados):
     """
     Lógica de exploración mejorada para asegurar que las rutas de imagen sean correctas.

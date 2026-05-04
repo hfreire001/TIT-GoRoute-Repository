@@ -2,7 +2,7 @@ import os
 from datos import home_repo
 
 # Tu ruta base del PC
-BASE_PATH = r"C:\Users\blbla\Desktop\TIT-GoRoute-Repository-conexion_cambio\TIT-GoRoute-Repository-conexion_cambio"
+BASE_PATH = r"C:\Users\blbla\Desktop\TIT-GoRoute-Repository-sara_final\TIT-GoRoute-Repository-sara_final"
 
 def procesar_datos_ruta(ruta):
     """

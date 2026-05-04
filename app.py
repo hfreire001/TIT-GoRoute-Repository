@@ -1,9 +1,11 @@
 import streamlit as st
-
+import redis
+import pika
 # Importamos las vistas principales
 from presentacion import login_view, home_view, profile_view, map_view, register_view, search_view
 # Importamos el chat desde su subcarpeta
 from presentacion.vistas import chat_view
+from presentacion.vistas.utils import connect_redis, connect_rabbitmq
 
 st.set_page_config(page_title="Plan&Go", layout="wide", page_icon="📍")
 
@@ -50,7 +52,34 @@ st.markdown(
 )
 # --------------------------------------------------
 
+def connecting_redis(host='localhost', port=6379, db=0, decode_responses=True):
+    try:
+        r = redis.Redis(host=host, port=port, db=db, decode_responses=decode_responses)
+        r.ping()  # Verifica que la conexión funciona
+        print("✅ Redis conectado correctamente")
+        return r
+    except redis.ConnectionError as e:
+        print(f"❌ Error al conectar con Redis: {e}")
+        return None
+
+
+def connecting_rabbit(host='localhost', port=5672, user='guest', password='guest'):
+    try:
+        credentials = pika.PlainCredentials(user, password)
+        parameters = pika.ConnectionParameters(host=host, port=port, credentials=credentials)
+        connection = pika.BlockingConnection(parameters)
+        channel = connection.channel()
+        print("✅ RabbitMQ conectado correctamente")
+        return connection, channel
+    except pika.exceptions.AMQPConnectionError as e:
+        print(f"❌ Error al conectar con RabbitMQ: {e}")
+        return None, None
+
 def main():
+    
+    connect_rabbitmq()
+    connect_redis()
+    
     # Opciones del menú actualizadas con Explorar y Chat
     opciones_menu = ["🏠 Feed", "🔍 Explorar", "📍 Crear ruta", "💬 Chat", "👤 Perfil"]
 

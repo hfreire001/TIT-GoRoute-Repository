@@ -132,8 +132,45 @@ def cargar_modo_lectura(route_id):
         st.info("💡 Ruta calculada para realizarse a pie.")
 
 def render_creador_normal(edit_mode=False):
+    # Inyección de estilo para botones Primary (Azul oscuro + Texto blanco)
+    # y personalización de fuentes para títulos
+    st.markdown("""
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&display=swap');
+            
+            /* Botones Primary: Azul Oscuro con texto Blanco */
+            div.stButton > button[kind="primary"] {
+                background-color: #003366 !important;
+                color: white !important;
+                border: none !important;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+            }
+            div.stButton > button[kind="primary"] p {
+                color: white !important;
+            }
+            div.stButton > button[kind="primary"]:hover {
+                background-color: #5a7ab0 !important;
+            }
+            
+            /* Ajuste de márgenes para títulos HTML */
+            .main-title {
+                color: #003366;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-weight: 700;
+                margin-bottom: 20px;
+            }
+            .section-title {
+                color: #003366;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                font-weight: 600;
+                margin-top: 10px;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # Título Principal en Azul Oscuro
     if edit_mode:
-        st.title("✏️ Editando tu ruta")
+        st.markdown('<h1 class="main-title">✏️ Editando tu ruta</h1>', unsafe_allow_html=True)
         if st.button("❌ Cancelar edición"):
             st.session_state['modo_mapa'] = 'crear'
             st.session_state['editando_route_id'] = None
@@ -142,7 +179,7 @@ def render_creador_normal(edit_mode=False):
             st.session_state['pagina_actual'] = "👤 Perfil"
             st.rerun()
     else:
-        st.title("📍 Creador de Rutas")
+        st.markdown('<h1 class="main-title">📍 Creador de Rutas</h1>', unsafe_allow_html=True)
 
     if 'puntos_ruta' not in st.session_state:
         st.session_state['puntos_ruta'] = []
@@ -191,13 +228,14 @@ def render_creador_normal(edit_mode=False):
                 st.rerun()
 
     with col_panel:
-        st.subheader("Paradas:")
+        # Título Paradas en Azul Oscuro
+        st.markdown('<h3 class="section-title">Paradas:</h3>', unsafe_allow_html=True)
+        
         if not st.session_state['puntos_ruta']:
             st.info("Haz clic en el mapa.")
         else:
             st.caption("Mantén pulsado y arrastra para cambiar el orden:")
             
-            # 🚀 AQUÍ ESTÁ EL CÓDIGO CSS RESTAURADO PARA LOS COLORES 🚀
             estilo_css = """
             .sortable-item {
                 color: white !important; border-radius: 8px !important;
@@ -213,7 +251,6 @@ def render_creador_normal(edit_mode=False):
             diccionario_puntos = {}
             
             for i, p in enumerate(st.session_state['puntos_ruta']):
-                # Generamos el mismo color exacto que el pin del mapa
                 color_bg = "#28a745" if i == 0 else ("#dc3545" if i == len(st.session_state['puntos_ruta'])-1 else generar_color_hex(i))
                 estilo_css += f".sortable-item:nth-child({i+1}) {{ background-color: {color_bg} !important; }}\n"
                 
@@ -221,7 +258,6 @@ def render_creador_normal(edit_mode=False):
                 nombres_puntos.append(nombre_etiqueta)
                 diccionario_puntos[nombre_etiqueta] = p
 
-            # Le pasamos el custom_style a la lista
             puntos_reordenados = sort_items(nombres_puntos, custom_style=estilo_css)
             
             if puntos_reordenados and puntos_reordenados != nombres_puntos:
@@ -230,7 +266,6 @@ def render_creador_normal(edit_mode=False):
 
             st.write("---")
             
-            # Selector y botón para borrar una sola parada
             punto_a_borrar = st.selectbox("¿Borrar una parada?", ["(Elegir parada...)"] + nombres_puntos, label_visibility="collapsed")
             if st.button("Borrar parada seleccionada", use_container_width=True):
                 if punto_a_borrar != "(Elegir parada...)":
@@ -245,6 +280,7 @@ def render_creador_normal(edit_mode=False):
             st.write("---")
 
             if len(st.session_state['puntos_ruta']) >= 2:
+                # Botón azul oscuro
                 if st.button("Calcular Ruta", type="primary", use_container_width=True):
                     with st.spinner("Trazando ruta..."):
                         coordenadas_api = [[p['lng'], p['lat']] for p in st.session_state['puntos_ruta']]
@@ -263,7 +299,9 @@ def render_creador_normal(edit_mode=False):
         st.success(f"**⏱️ Tiempo:** {formatear_tiempo(st.session_state['ruta_calculada']['duracion_min'])} andando.")
         
         st.write("---")
-        st.subheader("Guardar Cambios" if edit_mode else "Publicar Ruta")
+        # Título Publicar/Guardar en Azul Oscuro
+        tit_seccion = "Guardar Cambios" if edit_mode else "Publicar Ruta"
+        st.markdown(f'<h3 class="section-title">{tit_seccion}</h3>', unsafe_allow_html=True)
         
         def_nombre = st.session_state.get('edit_nombre', "") if edit_mode else ""
         def_desc = st.session_state.get('edit_desc', "") if edit_mode else ""
@@ -275,11 +313,11 @@ def render_creador_normal(edit_mode=False):
         desc_ruta = st.text_area("Descripción:", value=def_desc)
         imagen_ruta = st.file_uploader("Foto:", type=["jpg", "png"])
         
-        if st.button("Guardar" if not edit_mode else "Actualizar", type="primary"):
+        # Botón azul oscuro
+        if st.button("Guardar" if not edit_mode else "Actualizar", type="primary", use_container_width=True):
             uid = st.session_state['usuario_logueado']['id']
             username = st.session_state['usuario_logueado']['username']
             
-            # Llamamos directamente al Cerebro pasándole el ID de la ruta que estamos viendo
             exito = map_service.publicar_o_clonar_ruta(
                 usuario_actual_id=uid,
                 route_id_original=st.session_state.get('ruta_activa_id'),
